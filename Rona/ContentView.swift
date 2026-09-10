@@ -75,6 +75,7 @@ public struct ContentView: View {
             .environmentObject(router)
             .environmentObject(container)
         }
+        .preferredColorScheme(.light)
         .onAppear {
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("-testScanResult") || ProcessInfo.processInfo.arguments.contains("-testScan") {

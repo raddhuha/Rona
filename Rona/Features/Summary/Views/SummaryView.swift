@@ -127,14 +127,11 @@ public struct SummaryView: View {
                 }) {
                     Image(systemName: "camera")
                         .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.black)
+                        .foregroundColor(AppTheme.textPrimary)
                         .frame(width: 44, height: 44)
-                        .background(Color(uiColor: .systemGray6))
+                        .background(Color.white)
                         .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(Color(uiColor: .systemGray4).opacity(0.4), lineWidth: 1)
-                        )
+                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("summary_camera_button")
@@ -145,14 +142,11 @@ public struct SummaryView: View {
                 }) {
                     Image(systemName: "gearshape")
                         .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.black)
+                        .foregroundColor(AppTheme.textPrimary)
                         .frame(width: 44, height: 44)
-                        .background(Color(uiColor: .systemGray6))
+                        .background(Color.white)
                         .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(Color(uiColor: .systemGray4).opacity(0.4), lineWidth: 1)
-                        )
+                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("summary_settings_button")

@@ -127,18 +127,18 @@ public struct ScanResultView: View {
                     label: "Front"
                 )
 
-                // Card 2: Left
-                carouselCard(
-                    image: viewModel.leftImage,
-                    viewAngle: .left,
-                    label: "Left"
-                )
-
-                // Card 3: Right
+                // Card 2: Right
                 carouselCard(
                     image: viewModel.rightImage,
                     viewAngle: .right,
                     label: "Right"
+                )
+
+                // Card 3: Left
+                carouselCard(
+                    image: viewModel.leftImage,
+                    viewAngle: .left,
+                    label: "Left"
                 )
             }
             .padding(.horizontal, 20)

@@ -39,13 +39,26 @@ public final class CameraViewController: UIViewController {
 
     public override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .black
+        view.backgroundColor = .clear
 
         if let session = cameraController.captureSession {
             let layer = AVCaptureVideoPreviewLayer(session: session)
             layer.videoGravity = .resizeAspectFill
             view.layer.addSublayer(layer)
             self.previewLayer = layer
+        } else {
+            let imageView = UIImageView(image: cameraController.generateSimulatedFacePhoto())
+            imageView.contentMode = .scaleAspectFill
+            imageView.clipsToBounds = true
+            imageView.transform = CGAffineTransform(scaleX: 1.08, y: 1.08)
+            imageView.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(imageView)
+            NSLayoutConstraint.activate([
+                imageView.topAnchor.constraint(equalTo: view.topAnchor),
+                imageView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+                imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                imageView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+            ])
         }
     }
 
@@ -162,6 +175,9 @@ public final class CameraController: NSObject, ObservableObject, AVCapturePhotoC
 
     /// Generates a clean synthetic face image for simulator testing.
     public func generateSimulatedFacePhoto() -> UIImage {
+        if let face = UIImage(contentsOfFile: "/Users/raddhuha/Work/academy/C5/Rona/sample_face.png") {
+            return face
+        }
         let size = CGSize(width: 600, height: 800)
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { ctx in

@@ -49,13 +49,15 @@ public struct NavigationHeader<TrailingContent: View>: View {
                     Image(systemName: actionType.iconName)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(AppTheme.textPrimary)
-                        .frame(width: 40, height: 40)
-                        .background(Color(uiColor: .systemGray6))
+                        .frame(width: 44, height: 44)
+                        .background(Color.white)
                         .clipShape(Circle())
+                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
                 }
+                .buttonStyle(.plain)
                 .accessibilityLabel(actionType == .back ? "Back" : "Close")
             } else {
-                Spacer().frame(width: 40)
+                Spacer().frame(width: 44)
             }
 
             Spacer()

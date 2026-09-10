@@ -13,16 +13,16 @@ import Combine
 public final class ScanViewModel: ObservableObject {
     public enum ScanStep: Int, CaseIterable {
         case front = 0
-        case left = 1
-        case right = 2
+        case right = 1
+        case left = 2
         case processing = 3
         case result = 4
 
         public var title: String {
             switch self {
-            case .front: return "Scan Front"
-            case .left: return "Scan Left"
-            case .right: return "Scan Right"
+            case .front: return "Look straight ahead"
+            case .right: return "Turn your face to the right"
+            case .left: return "Turn your face to the left"
             case .processing: return "Analyzing"
             case .result: return "Scan Result"
             }
@@ -65,9 +65,45 @@ public final class ScanViewModel: ObservableObject {
     public var currentViewAngle: ScanViewAngle {
         switch currentStep {
         case .front: return .front
-        case .left: return .left
         case .right: return .right
+        case .left: return .left
         default: return .front
+        }
+    }
+
+    public var stepCounterText: String {
+        switch currentStep {
+        case .front: return "0/3 Front side"
+        case .right: return "1/3 Right side"
+        case .left: return "2/3 Left side"
+        default: return ""
+        }
+    }
+
+    public var stepTitle: String {
+        switch currentStep {
+        case .front: return "Look straight ahead"
+        case .right: return "Turn your face to the right"
+        case .left: return "Turn your face to the left"
+        default: return ""
+        }
+    }
+
+    public var stepSubtitle: String {
+        switch currentStep {
+        case .front: return "Keep your face inside the frame — we'll capture this in a moment."
+        case .right: return "Slowly turn until your face is inside the frame — we'll capture this in a moment."
+        case .left: return "Slowly turn until your face is inside the frame — we'll capture this in a moment."
+        default: return ""
+        }
+    }
+
+    public var stepCompletionText: String {
+        switch currentStep {
+        case .front: return "Front side Complete"
+        case .right: return "Right side Complete"
+        case .left: return "Left side Complete"
+        default: return "Complete"
         }
     }
 
@@ -75,12 +111,12 @@ public final class ScanViewModel: ObservableObject {
         switch currentStep {
         case .front:
             frontImage = image
-            currentStep = .left
-        case .left:
-            leftImage = image
             currentStep = .right
         case .right:
             rightImage = image
+            currentStep = .left
+        case .left:
+            leftImage = image
             createImmediateScanResult()
             currentStep = .result
         default:
@@ -134,12 +170,12 @@ public final class ScanViewModel: ObservableObject {
 
     public func retakeCurrent() {
         switch currentStep {
-        case .left:
+        case .right:
             frontImage = nil
             currentStep = .front
-        case .right:
-            leftImage = nil
-            currentStep = .left
+        case .left:
+            rightImage = nil
+            currentStep = .right
         case .result:
             discardScan()
         default:
