@@ -55,13 +55,13 @@ public struct SummaryView: View {
                         insight: insight,
                         title: "Comparison Insight",
                         showDataAction: {
-                            if let current = viewModel.latestRecord, let previous = viewModel.previousRecord {
-                                router.presentComparison(record1: previous, record2: current)
-                            } else if let current = viewModel.latestRecord {
-                                router.navigateToDetail(id: current.id)
-                            }
+                            openComparisonOrDetail()
                         }
                     )
+                    .contentShape(RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous))
+                    .onTapGesture {
+                        openComparisonOrDetail()
+                    }
                     .padding(.top, 6)
                 }
 
@@ -71,9 +71,10 @@ public struct SummaryView: View {
                         .font(AppTheme.sectionTitleFont)
                         .foregroundColor(AppTheme.textPrimary)
 
-                    NavigationRowCard(title: "Show All Data") {
-                        router.navigateToRecords()
+                    NavigationLink(value: AppRouter.Route.records) {
+                        NavigationRowCard(title: "Show All Data")
                     }
+                    .buttonStyle(.plain)
                     .accessibilityIdentifier("summary_show_all_data_button")
                 }
                 .padding(.top, 10)
@@ -84,9 +85,10 @@ public struct SummaryView: View {
                         .font(AppTheme.sectionTitleFont)
                         .foregroundColor(AppTheme.textPrimary)
 
-                    NavigationRowCard(title: "Show Report") {
-                        router.navigateToReport()
+                    NavigationLink(value: AppRouter.Route.report) {
+                        NavigationRowCard(title: "Show Report")
                     }
+                    .buttonStyle(.plain)
                     .accessibilityIdentifier("summary_show_report_button")
                 }
                 .padding(.top, 6)
@@ -108,6 +110,16 @@ public struct SummaryView: View {
         }
     }
 
+    private func openComparisonOrDetail() {
+        if let current = viewModel.latestRecord, let previous = viewModel.previousRecord {
+            router.presentComparison(record1: previous, record2: current)
+        } else if let current = viewModel.latestRecord {
+            router.navigateToDetail(id: current.id)
+        } else {
+            router.presentScanFlow()
+        }
+    }
+
     // MARK: - Recent Photos View
 
     @ViewBuilder
@@ -116,46 +128,61 @@ public struct SummaryView: View {
             HStack(spacing: 14) {
                 // Left Photo: Previous Record (or placeholder if only 1 record exists)
                 if let previous = viewModel.previousRecord {
-                    ScanImageCard(
-                        image: viewModel.previousFrontImage,
-                        dateText: previous.formattedDate,
-                        action: {
-                            router.navigateToDetail(id: previous.id)
-                        }
-                    )
+                    NavigationLink(value: AppRouter.Route.recordDetail(id: previous.id)) {
+                        ScanImageCard(
+                            image: viewModel.previousFrontImage,
+                            dateText: previous.formattedDate
+                        )
+                    }
+                    .buttonStyle(.plain)
                 } else {
-                    ScanImageCard(
-                        image: nil,
-                        dateText: "No previous",
-                        headerLabel: "Previous"
-                    )
+                    Button(action: {
+                        router.presentScanFlow()
+                    }) {
+                        ScanImageCard(
+                            image: nil,
+                            dateText: "Scan to add",
+                            headerLabel: "Previous"
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 // Right Photo: Latest Record
-                ScanImageCard(
-                    image: viewModel.latestFrontImage,
-                    dateText: latest.formattedDate,
-                    headerLabel: "Latest Photo",
-                    action: {
-                        router.navigateToDetail(id: latest.id)
-                    }
-                )
+                NavigationLink(value: AppRouter.Route.recordDetail(id: latest.id)) {
+                    ScanImageCard(
+                        image: viewModel.latestFrontImage,
+                        dateText: latest.formattedDate,
+                        headerLabel: "Latest Photo"
+                    )
+                }
+                .buttonStyle(.plain)
             }
             .padding(.top, 4)
         } else {
-            // Empty state placeholder cards
+            // Empty state placeholder cards - tapping opens scan flow
             HStack(spacing: 14) {
-                ScanImageCard(
-                    image: nil,
-                    dateText: "No scans yet",
-                    headerLabel: "Previous"
-                )
+                Button(action: {
+                    router.presentScanFlow()
+                }) {
+                    ScanImageCard(
+                        image: nil,
+                        dateText: "Tap to scan",
+                        headerLabel: "Previous"
+                    )
+                }
+                .buttonStyle(.plain)
 
-                ScanImageCard(
-                    image: nil,
-                    dateText: "No scans yet",
-                    headerLabel: "Latest Photo"
-                )
+                Button(action: {
+                    router.presentScanFlow()
+                }) {
+                    ScanImageCard(
+                        image: nil,
+                        dateText: "Tap to scan",
+                        headerLabel: "Latest Photo"
+                    )
+                }
+                .buttonStyle(.plain)
             }
             .padding(.top, 4)
         }
