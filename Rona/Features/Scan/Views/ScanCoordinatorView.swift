@@ -118,7 +118,7 @@ public struct ScanCoordinatorView: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(AppTheme.textPrimary)
 
-            // Leading Circular Back Button
+            // Leading Circular Back Button and Trailing Camera Switch Button
             HStack {
                 Button(action: {
                     dismiss()
@@ -135,6 +135,20 @@ public struct ScanCoordinatorView: View {
                 .accessibilityIdentifier("scan_back_button")
 
                 Spacer()
+
+                Button(action: {
+                    cameraController.switchCamera()
+                }) {
+                    Image(systemName: "camera.rotate")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .frame(width: 44, height: 44)
+                        .background(Color.white)
+                        .clipShape(Circle())
+                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("scan_switch_camera_button")
             }
         }
     }
