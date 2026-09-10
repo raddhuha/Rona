@@ -2,23 +2,74 @@
 //  ContentView.swift
 //  Rona
 //
-//  Created by Radian Dhuha on 08/09/26.
+//  Created for Rona Acne Tracking App.
 //
 
 import SwiftUI
+import Combine
 
-struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+/// Main container coordinating root navigation and presentations.
+@MainActor
+public struct ContentView: View {
+    @EnvironmentObject private var router: AppRouter
+    @EnvironmentObject private var container: AppContainer
+
+    public var body: some View {
+        NavigationStack(path: $router.path) {
+            SummaryView(
+                viewModel: SummaryViewModel(
+                    scanRepository: container.scanRepository,
+                    insightGenerator: container.insightGenerator,
+                    imageStorage: container.imageStorage
+                )
+            )
+            .navigationDestination(for: AppRouter.Route.self) { route in
+                switch route {
+                case .records:
+                    RecordsGridView(
+                        viewModel: RecordsViewModel(
+                            scanRepository: container.scanRepository,
+                            imageStorage: container.imageStorage
+                        )
+                    )
+                case .report:
+                    ReportView(
+                        viewModel: ReportViewModel(
+                            scanRepository: container.scanRepository,
+                            insightGenerator: container.insightGenerator
+                        )
+                    )
+                case .recordDetail(let id):
+                    RecordDetailView(
+                        viewModel: RecordDetailViewModel(
+                            recordId: id,
+                            scanRepository: container.scanRepository,
+                            imageStorage: container.imageStorage
+                        )
+                    )
+                }
+            }
         }
-        .padding()
+        .fullScreenCover(isPresented: $router.isScanningPresented) {
+            ScanCoordinatorView(
+                viewModel: ScanViewModel(
+                    acneDetector: container.acneDetector,
+                    scoreCalculator: container.scoreCalculator,
+                    insightGenerator: container.insightGenerator,
+                    scanRepository: container.scanRepository,
+                    imageStorage: container.imageStorage
+                )
+            )
+        }
+        .sheet(item: $router.activeComparison) { comparison in
+            ComparisonView(
+                viewModel: ComparisonViewModel(
+                    previousRecord: comparison.previousRecord,
+                    currentRecord: comparison.currentRecord,
+                    imageStorage: container.imageStorage,
+                    insightGenerator: container.insightGenerator
+                )
+            )
+        }
     }
-}
-
-#Preview {
-    ContentView()
 }
