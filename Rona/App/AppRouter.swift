@@ -28,8 +28,6 @@ public struct ComparisonSelection: Identifiable, Equatable {
 /// App navigation router managing NavigationStack paths and modal presentations.
 @MainActor
 public final class AppRouter: ObservableObject {
-    public nonisolated let objectWillChange = ObservableObjectPublisher()
-
     public enum Route: Hashable {
         case records
         case report

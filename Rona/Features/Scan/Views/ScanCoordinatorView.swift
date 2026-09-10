@@ -43,6 +43,20 @@ public struct ScanCoordinatorView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
+        .onAppear {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("-testScanResult") {
+                if viewModel.sessionResult == nil {
+                    let photo = cameraController.generateSimulatedFacePhoto()
+                    viewModel.frontImage = photo
+                    viewModel.leftImage = photo
+                    viewModel.rightImage = photo
+                    viewModel.createImmediateScanResult()
+                    viewModel.currentStep = .result
+                }
+            }
+            #endif
+        }
     }
 
     // MARK: - Capture View (Steps 1, 2, 3)

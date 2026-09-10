@@ -75,5 +75,14 @@ public struct ContentView: View {
             .environmentObject(router)
             .environmentObject(container)
         }
+        .onAppear {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("-testScanResult") || ProcessInfo.processInfo.arguments.contains("-testScan") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    router.presentScanFlow()
+                }
+            }
+            #endif
+        }
     }
 }

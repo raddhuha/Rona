@@ -68,27 +68,6 @@ public struct ScanImageCard: View {
                     .fill(Color(uiColor: .systemGray6))
             }
 
-            // Dark gradient overlay for bottom text contrast (only when image is present)
-            if image != nil {
-                LinearGradient(
-                    colors: [Color.clear, Color.black.opacity(0.45)],
-                    startPoint: .center,
-                    endPoint: .bottom
-                )
-            }
-
-            // Header label (e.g. "Latest Photo")
-            if let headerLabel = headerLabel {
-                Text(headerLabel)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(Color.black.opacity(0.4))
-                    .clipShape(Capsule())
-                    .padding(10)
-            }
-
             // Selection indicator badge
             if isSelectionMode {
                 HStack {
@@ -116,11 +95,11 @@ public struct ScanImageCard: View {
                 if let relative = relativeDateText {
                     Text(relative)
                         .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(image != nil ? Color.white.opacity(0.85) : Color(uiColor: .secondaryLabel))
+                        .foregroundColor(Color(uiColor: .secondaryLabel))
                 }
                 Text(dateText)
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(image != nil ? Color.white : AppTheme.textPrimary)
+                    .foregroundColor(AppTheme.textPrimary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12)

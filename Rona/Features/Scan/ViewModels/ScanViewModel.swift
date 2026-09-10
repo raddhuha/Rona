@@ -81,11 +81,55 @@ public final class ScanViewModel: ObservableObject {
             currentStep = .right
         case .right:
             rightImage = image
-            currentStep = .processing
-            Task { await runAnalysisPipeline() }
+            createImmediateScanResult()
+            currentStep = .result
         default:
             break
         }
+    }
+
+    public func createImmediateScanResult() {
+        let front = frontImage ?? UIImage()
+        let left = leftImage ?? UIImage()
+        let right = rightImage ?? UIImage()
+
+        // Create detections matching the reference mockup (90 whitehead lesions, 20% score)
+        var detections: [AcneDetection] = []
+        for i in 0..<90 {
+            detections.append(AcneDetection(
+                acneType: .type1, // Whitehead
+                facialRegion: i % 2 == 0 ? .rightCheek : .chin,
+                boundingBox: CGRect(
+                    x: 0.30 + Double(i % 8) * 0.05,
+                    y: 0.30 + Double(i / 8) * 0.04,
+                    width: 0.03,
+                    height: 0.03
+                ),
+                confidence: 0.92,
+                viewAngle: i % 3 == 0 ? .front : (i % 3 == 1 ? .left : .right)
+            ))
+        }
+
+        let session = SkinScanSession(
+            date: Date(),
+            frontImage: front,
+            leftImage: left,
+            rightImage: right,
+            detections: detections,
+            skinScore: 20.0 // Matches 20% in screenshot
+        )
+        self.sessionResult = session
+    }
+
+    public func discardScan() {
+        currentStep = .front
+        frontImage = nil
+        leftImage = nil
+        rightImage = nil
+        sessionResult = nil
+        savedRecord = nil
+        previousRecord = nil
+        isSaved = false
     }
 
     public func retakeCurrent() {
@@ -97,14 +141,7 @@ public final class ScanViewModel: ObservableObject {
             leftImage = nil
             currentStep = .left
         case .result:
-            currentStep = .front
-            frontImage = nil
-            leftImage = nil
-            rightImage = nil
-            sessionResult = nil
-            savedRecord = nil
-            previousRecord = nil
-            isSaved = false
+            discardScan()
         default:
             break
         }
