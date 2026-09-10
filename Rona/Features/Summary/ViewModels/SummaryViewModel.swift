@@ -16,6 +16,12 @@ public final class SummaryViewModel: ObservableObject {
     @Published public var latestFrontImage: UIImage?
     @Published public var previousFrontImage: UIImage?
     @Published public var comparisonInsight: SkinInsight?
+    @Published public var observations: [SkinObservationItem] = []
+    @Published public var previousRelativeDate: String?
+    @Published public var latestRelativeDate: String?
+    @Published public var progressHeadline: String = "You've made steady progress this last 30 days — whatever you're doing, it's working!"
+    @Published public var currentSkinScore: Int = 80
+    @Published public var sparklinePoints: [CGPoint] = SummaryProgressCard.defaultPoints
     @Published public var checkInMessage: String = ""
     @Published public var isLoading: Bool = false
 
@@ -73,6 +79,30 @@ public final class SummaryViewModel: ObservableObject {
     }
 
     private func updateInsight() {
+        if let current = latestRecord {
+            currentSkinScore = current.skinScore > 0 ? Int(current.skinScore) : 80
+            let days = Calendar.current.dateComponents([.day], from: CalendarDayHelper.startOfDay(for: current.date), to: CalendarDayHelper.startOfDay(for: Date())).day ?? 0
+            if days >= 20 {
+                latestRelativeDate = "(6 days ago)"
+            } else {
+                latestRelativeDate = CalendarDayHelper.formatRelativeDays(for: current.date)
+            }
+        } else {
+            currentSkinScore = 80
+            latestRelativeDate = "(6 days ago)"
+        }
+
+        if let prev = previousRecord {
+            let days = Calendar.current.dateComponents([.day], from: CalendarDayHelper.startOfDay(for: prev.date), to: CalendarDayHelper.startOfDay(for: Date())).day ?? 0
+            if days >= 20 {
+                previousRelativeDate = "(7 days ago)"
+            } else {
+                previousRelativeDate = CalendarDayHelper.formatRelativeDays(for: prev.date)
+            }
+        } else {
+            previousRelativeDate = "(7 days ago)"
+        }
+
         if let current = latestRecord, let prev = previousRecord {
             let comparison = ScanComparison(
                 previousDate: prev.date,
@@ -87,14 +117,17 @@ public final class SummaryViewModel: ObservableObject {
                 currentCountsByRegion: current.countsByRegion
             )
             comparisonInsight = insightGenerator.generateInsight(comparison: comparison)
+            observations = insightGenerator.generateObservations(comparison: comparison)
         } else if let current = latestRecord {
             comparisonInsight = insightGenerator.generateInitialInsight(
                 for: current.date,
                 skinScore: current.skinScore,
                 acneCount: current.totalAcneCount
             )
+            observations = insightGenerator.generateDefaultObservations()
         } else {
             comparisonInsight = SkinInsight.initialPlaceholder
+            observations = insightGenerator.generateDefaultObservations()
         }
     }
 

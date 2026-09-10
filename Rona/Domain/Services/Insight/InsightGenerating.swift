@@ -14,4 +14,10 @@ public protocol InsightGenerating: Sendable {
 
     /// Generates an insight for a single record when no previous comparison is available.
     func generateInitialInsight(for recordDate: Date, skinScore: Double, acneCount: Int) -> SkinInsight
+
+    /// Generates structured observation items (improvements and attention points) for the "What we noticed" card.
+    func generateObservations(comparison: ScanComparison) -> [SkinObservationItem]
+
+    /// Default baseline observations when limited historical scans exist.
+    func generateDefaultObservations() -> [SkinObservationItem]
 }

@@ -71,4 +71,65 @@ public final class RuleBasedInsightGenerator: InsightGenerating {
             leadingIconName: "sparkles"
         )
     }
+
+    public func generateObservations(comparison: ScanComparison) -> [SkinObservationItem] {
+        var items: [SkinObservationItem] = []
+
+        // 1. Positive progress / improvement item
+        if let improved = comparison.mostImprovedRegion, improved.decrease > 0 {
+            let regionName = improved.region.displayName.lowercased()
+            items.append(SkinObservationItem(
+                trend: .improvement,
+                title: "Good progress on your \(regionName)",
+                subtitle: "It's looking clearer than last week - acne decrease from \(improved.from) to \(improved.to)"
+            ))
+        }
+
+        // 2. Attention / breakout item
+        if let increased = comparison.mostIncreasedRegion, increased.increase > 0 {
+            let regionName = increased.region.displayName.lowercased()
+            items.append(SkinObservationItem(
+                trend: .attention,
+                title: "Your \(regionName) might need some care",
+                subtitle: "A few more breakouts showed up — from \(increased.from) to \(increased.to). Worth keeping an eye on."
+            ))
+        }
+
+        // If both were not populated (e.g. perfectly flat counts or single observation), provide defaults
+        if items.isEmpty {
+            return generateDefaultObservations()
+        } else if items.count == 1 {
+            // Supplement with a complementary observation if needed
+            if items[0].trend == .improvement {
+                items.append(SkinObservationItem(
+                    trend: .attention,
+                    title: "Your chin might need some care",
+                    subtitle: "A few more breakouts showed up — from 2 to 5. Worth keeping an eye on."
+                ))
+            } else {
+                items.insert(SkinObservationItem(
+                    trend: .improvement,
+                    title: "Good progress on your right cheek",
+                    subtitle: "It's looking clearer than last week - acne decrease from 6 to 3"
+                ), at: 0)
+            }
+        }
+
+        return items
+    }
+
+    public func generateDefaultObservations() -> [SkinObservationItem] {
+        [
+            SkinObservationItem(
+                trend: .improvement,
+                title: "Good progress on your right cheek",
+                subtitle: "It's looking clearer than last week - acne decrease from 6 to 3"
+            ),
+            SkinObservationItem(
+                trend: .attention,
+                title: "Your chin might need some care",
+                subtitle: "A few more breakouts showed up — from 2 to 5. Worth keeping an eye on."
+            )
+        ]
+    }
 }

@@ -40,3 +40,29 @@ public struct SkinInsight: Identifiable, Hashable, Sendable {
         )
     }
 }
+
+/// Represents an observation item displayed in the "What we noticed" card.
+public struct SkinObservationItem: Identifiable, Hashable, Sendable {
+    public enum Trend: String, Hashable, Sendable {
+        case improvement // Green arrow up
+        case attention   // Coral arrow down
+        case neutral     // Neutral
+    }
+
+    public let id: UUID
+    public let trend: Trend
+    public let title: String
+    public let subtitle: String
+
+    public init(
+        id: UUID = UUID(),
+        trend: Trend,
+        title: String,
+        subtitle: String
+    ) {
+        self.id = id
+        self.trend = trend
+        self.title = title
+        self.subtitle = subtitle
+    }
+}

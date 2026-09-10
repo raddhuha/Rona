@@ -58,4 +58,18 @@ public enum CalendarDayHelper {
     public static func date(fromDayId dayId: String) -> Date? {
         dayFormatter.date(from: dayId)
     }
+
+    /// Formats relative time description like "(7 days ago)" or "(6 days ago)"
+    public static func formatRelativeDays(for date: Date, relativeTo: Date = Date(), calendar: Calendar = .current) -> String {
+        let start1 = calendar.startOfDay(for: date)
+        let start2 = calendar.startOfDay(for: relativeTo)
+        let days = calendar.dateComponents([.day], from: start1, to: start2).day ?? 0
+        if days == 0 {
+            return "(today)"
+        } else if days == 1 {
+            return "(1 day ago)"
+        } else {
+            return "(\(abs(days)) days ago)"
+        }
+    }
 }

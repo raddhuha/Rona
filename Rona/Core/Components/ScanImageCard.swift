@@ -11,6 +11,7 @@ import SwiftUI
 public struct ScanImageCard: View {
     private let image: UIImage?
     private let dateText: String
+    private let relativeDateText: String?
     private let headerLabel: String?
     private let borderColor: Color?
     private let borderWidth: CGFloat
@@ -21,6 +22,7 @@ public struct ScanImageCard: View {
     public init(
         image: UIImage? = nil,
         dateText: String,
+        relativeDateText: String? = nil,
         headerLabel: String? = nil,
         borderColor: Color? = nil,
         borderWidth: CGFloat = 1.8,
@@ -30,6 +32,7 @@ public struct ScanImageCard: View {
     ) {
         self.image = image
         self.dateText = dateText
+        self.relativeDateText = relativeDateText
         self.headerLabel = headerLabel
         self.borderColor = borderColor
         self.borderWidth = borderWidth
@@ -63,19 +66,16 @@ public struct ScanImageCard: View {
             } else {
                 Rectangle()
                     .fill(Color(uiColor: .systemGray6))
-                    .overlay(
-                        Image(systemName: "person.crop.rectangle")
-                            .font(.system(size: 36))
-                            .foregroundColor(Color(uiColor: .systemGray4))
-                    )
             }
 
-            // Dark gradient overlay for bottom text contrast
-            LinearGradient(
-                colors: [Color.clear, Color.black.opacity(0.45)],
-                startPoint: .center,
-                endPoint: .bottom
-            )
+            // Dark gradient overlay for bottom text contrast (only when image is present)
+            if image != nil {
+                LinearGradient(
+                    colors: [Color.clear, Color.black.opacity(0.45)],
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
+            }
 
             // Header label (e.g. "Latest Photo")
             if let headerLabel = headerLabel {
@@ -110,15 +110,21 @@ public struct ScanImageCard: View {
                 }
             }
 
-            // Bottom Date Text
-            VStack {
+            // Bottom Date and Relative Date Text (Left-aligned)
+            VStack(alignment: .leading, spacing: 2) {
                 Spacer()
+                if let relative = relativeDateText {
+                    Text(relative)
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(image != nil ? Color.white.opacity(0.85) : Color(uiColor: .secondaryLabel))
+                }
                 Text(dateText)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 12)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(image != nil ? Color.white : AppTheme.textPrimary)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 12)
         }
         .frame(minHeight: 160)
         .aspectRatio(0.78, contentMode: .fit)
