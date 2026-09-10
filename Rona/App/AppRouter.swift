@@ -62,8 +62,43 @@ public final class AppRouter: ObservableObject {
         activeComparison = ComparisonSelection(previousRecord: record1, currentRecord: record2)
     }
 
-    public func dismissComparison() {
+    public func dismissScanFlow() {
+        isScanningPresented = false
+    }
+
+    public func dismissScanAndNavigateToDetail(id: UUID) {
+        isScanningPresented = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            self.navigateToDetail(id: id)
+        }
+    }
+
+    public func dismissScanAndPresentComparison(record1: ScanRecord, record2: ScanRecord) {
+        isScanningPresented = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            self.presentComparison(record1: record1, record2: record2)
+        }
+    }
+
+    public func dismissScanAndNavigateToRecords() {
+        isScanningPresented = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            self.navigateToRecords()
+        }
+    }
+
+    public func dismissComparisonAndNavigateToDetail(id: UUID) {
         activeComparison = nil
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            self.navigateToDetail(id: id)
+        }
+    }
+
+    public func dismissComparisonAndNavigateToRecords() {
+        activeComparison = nil
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            self.navigateToRecords()
+        }
     }
 
     public func popToRoot() {

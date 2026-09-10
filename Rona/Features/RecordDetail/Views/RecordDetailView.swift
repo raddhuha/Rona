@@ -12,6 +12,7 @@ import Combine
 @MainActor
 public struct RecordDetailView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var router: AppRouter
     @StateObject private var viewModel: RecordDetailViewModel
     @State private var showScoreInfoSheet: Bool = false
 
@@ -137,6 +138,24 @@ public struct RecordDetailView: View {
                             mode: .fraction
                         )
 
+                        // Quick Navigation: Compare with previous scan if available
+                        if let previous = viewModel.previousRecord {
+                            Button(action: {
+                                router.presentComparison(record1: previous, record2: record)
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "arrow.left.and.right")
+                                    Text("Compare with \(previous.formattedDate)")
+                                        .font(.system(size: 14, weight: .semibold))
+                                }
+                                .foregroundColor(AppTheme.textPrimary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color(uiColor: .systemGray6))
+                                .clipShape(Capsule())
+                            }
+                        }
+
                         // "Acne by Type" Breakdown Table (matching Screenshot 4)
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Acne by Type")
@@ -198,6 +217,22 @@ public struct RecordDetailView: View {
                                 }
                             }
                         }
+
+                        // Navigation Shortcuts
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("More")
+                                .font(AppTheme.sectionTitleFont)
+                                .foregroundColor(AppTheme.textPrimary)
+
+                            NavigationRowCard(title: "View All Records") {
+                                router.navigateToRecords()
+                            }
+
+                            NavigationRowCard(title: "View Progress Report") {
+                                router.navigateToReport()
+                            }
+                        }
+                        .padding(.top, 4)
                         .padding(.bottom, 36)
                     }
                     .padding(.horizontal, 20)

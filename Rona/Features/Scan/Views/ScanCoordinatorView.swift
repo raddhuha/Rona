@@ -12,6 +12,7 @@ import Combine
 @MainActor
 public struct ScanCoordinatorView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var router: AppRouter
     @StateObject private var viewModel: ScanViewModel
     @StateObject private var cameraController: CameraController
     @State private var isCapturing: Bool = false
@@ -31,9 +32,7 @@ public struct ScanCoordinatorView: View {
             case .processing:
                 ScanProcessingView(statusText: viewModel.analysisStatusText)
             case .result:
-                ScanResultView(viewModel: viewModel) {
-                    dismiss()
-                }
+                ScanResultView(viewModel: viewModel)
             }
         }
         .alert("Error", isPresented: Binding(

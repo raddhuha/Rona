@@ -60,6 +60,8 @@ public struct ContentView: View {
                     imageStorage: container.imageStorage
                 )
             )
+            .environmentObject(router)
+            .environmentObject(container)
         }
         .sheet(item: $router.activeComparison) { comparison in
             ComparisonView(
@@ -70,6 +72,8 @@ public struct ContentView: View {
                     insightGenerator: container.insightGenerator
                 )
             )
+            .environmentObject(router)
+            .environmentObject(container)
         }
     }
 }

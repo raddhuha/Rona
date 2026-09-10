@@ -17,6 +17,7 @@ public final class ReportViewModel: ObservableObject {
     @Published public var dateRangeLabel: String = ""
     @Published public var progressPoints: [ProgressPoint] = []
     @Published public var insight: SkinInsight = SkinInsight.initialPlaceholder
+    @Published public var comparisonPair: (ScanRecord, ScanRecord)? = nil
 
     private let scanRepository: ScanRepositoryProtocol
     private let insightGenerator: InsightGenerating
@@ -96,6 +97,7 @@ public final class ReportViewModel: ObservableObject {
 
         // Generate insight between earliest and latest in this period
         if filtered.count >= 2, let first = filtered.first, let last = filtered.last {
+            comparisonPair = (first, last)
             let comp = ScanComparison(
                 previousDate: first.date,
                 currentDate: last.date,
@@ -110,12 +112,14 @@ public final class ReportViewModel: ObservableObject {
             )
             insight = insightGenerator.generateInsight(comparison: comp)
         } else if let only = filtered.first {
+            comparisonPair = nil
             insight = insightGenerator.generateInitialInsight(
                 for: only.date,
                 skinScore: only.skinScore,
                 acneCount: only.totalAcneCount
             )
         } else {
+            comparisonPair = nil
             insight = SkinInsight(
                 title: "No Data in Range",
                 body: "No skin scans recorded for this time range. Try navigating to an earlier period or taking a scan today."

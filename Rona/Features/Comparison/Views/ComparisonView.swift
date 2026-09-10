@@ -12,6 +12,7 @@ import Combine
 @MainActor
 public struct ComparisonView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var router: AppRouter
     @StateObject private var viewModel: ComparisonViewModel
     @State private var showScoreInfoSheet: Bool = false
 
@@ -40,20 +41,33 @@ public struct ComparisonView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 22) {
                     // Two Side-by-Side Photo Cards
-                    HStack(spacing: 14) {
-                        ScanImageCard(
-                            image: viewModel.previousFrontImage,
-                            dateText: viewModel.previousRecord.formattedDate,
-                            borderColor: AppTheme.accentBlue,
-                            borderWidth: 2.0
-                        )
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 14) {
+                            ScanImageCard(
+                                image: viewModel.previousFrontImage,
+                                dateText: viewModel.previousRecord.formattedDate,
+                                borderColor: AppTheme.accentBlue,
+                                borderWidth: 2.0,
+                                action: {
+                                    router.dismissComparisonAndNavigateToDetail(id: viewModel.previousRecord.id)
+                                }
+                            )
 
-                        ScanImageCard(
-                            image: viewModel.currentFrontImage,
-                            dateText: viewModel.currentRecord.formattedDate,
-                            borderColor: AppTheme.accentPink,
-                            borderWidth: 2.0
-                        )
+                            ScanImageCard(
+                                image: viewModel.currentFrontImage,
+                                dateText: viewModel.currentRecord.formattedDate,
+                                borderColor: AppTheme.accentPink,
+                                borderWidth: 2.0,
+                                action: {
+                                    router.dismissComparisonAndNavigateToDetail(id: viewModel.currentRecord.id)
+                                }
+                            )
+                        }
+
+                        Text("Tap either photo to inspect full detection details")
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .padding(.leading, 2)
                     }
 
                     // "Full Face" Section
@@ -98,7 +112,10 @@ public struct ComparisonView: View {
                     // Comparison Insight Card
                     InsightCardView(
                         insight: viewModel.comparisonInsight,
-                        title: "Comparison Insight"
+                        title: "Comparison Insight",
+                        showDataAction: {
+                            router.dismissComparisonAndNavigateToRecords()
+                        }
                     )
 
                     // "Acne by Type" Section
@@ -114,6 +131,18 @@ public struct ComparisonView: View {
                             currentDateLabel: viewModel.currentRecord.formattedDate
                         )
                     }
+
+                    // Navigation Shortcuts
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("More")
+                            .font(AppTheme.sectionTitleFont)
+                            .foregroundColor(AppTheme.textPrimary)
+
+                        NavigationRowCard(title: "View All Records") {
+                            router.dismissComparisonAndNavigateToRecords()
+                        }
+                    }
+                    .padding(.top, 4)
                     .padding(.bottom, 36)
                 }
                 .padding(.horizontal, 20)

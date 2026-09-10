@@ -11,11 +11,13 @@ import Combine
 /// Review screen presented after analysis completion, allowing the user to review and save the record.
 @MainActor
 public struct ScanResultView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var router: AppRouter
     @ObservedObject var viewModel: ScanViewModel
     let onSaveCompleted: () -> Void
     @State private var isSaving: Bool = false
 
-    public init(viewModel: ScanViewModel, onSaveCompleted: @escaping () -> Void) {
+    public init(viewModel: ScanViewModel, onSaveCompleted: @escaping () -> Void = {}) {
         self.viewModel = viewModel
         self.onSaveCompleted = onSaveCompleted
     }
@@ -23,11 +25,26 @@ public struct ScanResultView: View {
     public var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 20) {
+                // Top Close Bar
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        router.dismissScanFlow()
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(AppTheme.textPrimary)
+                            .frame(width: 38, height: 38)
+                            .background(Color(uiColor: .systemGray6))
+                            .clipShape(Circle())
+                    }
+                }
+                .padding(.top, 12)
+
                 // Header
                 Text("Scan Complete")
                     .font(AppTheme.largeTitleFont)
                     .foregroundColor(AppTheme.textPrimary)
-                    .padding(.top, 12)
 
                 Text("Your skin scan has been analyzed. Review your score and detected lesions below before saving.")
                     .font(AppTheme.bodyFont)
@@ -84,46 +101,98 @@ public struct ScanResultView: View {
                 if let insight = viewModel.comparisonInsight {
                     InsightCardView(
                         insight: insight,
-                        title: "Scan Insight"
+                        title: "Scan Insight",
+                        showDataAction: {
+                            if let saved = viewModel.savedRecord, let prev = viewModel.previousRecord {
+                                router.dismissScanAndPresentComparison(record1: prev, record2: saved)
+                            } else {
+                                router.dismissScanAndNavigateToRecords()
+                            }
+                        }
                     )
                 }
 
-                // Action Buttons: Save Record & Retake
+                // Action Buttons: Save Record & Retake or Post-Save Navigation
                 VStack(spacing: 12) {
-                    Button(action: {
-                        isSaving = true
-                        Task {
-                            let success = await viewModel.saveRecord()
-                            isSaving = false
-                            if success {
-                                onSaveCompleted()
-                            }
-                        }
-                    }) {
+                    if viewModel.isSaved {
                         HStack(spacing: 8) {
-                            if isSaving {
-                                ProgressView()
-                                    .tint(.white)
-                            }
-                            Text(isSaving ? "Saving Record..." : "Save Record")
-                                .font(.system(size: 16, weight: .semibold))
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(AppTheme.accentGreen)
+                            Text("Record saved to history")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(AppTheme.textSecondary)
                         }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(AppTheme.textPrimary)
-                        .clipShape(Capsule())
-                    }
-                    .disabled(isSaving)
+                        .padding(.bottom, 4)
 
-                    Button(action: {
-                        viewModel.retakeCurrent()
-                    }) {
-                        Text("Retake Photos")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(AppTheme.textSecondary)
+                        PrimaryPillButton(
+                            title: "View Record Details",
+                            icon: "arrow.right",
+                            style: .filled,
+                            action: {
+                                if let saved = viewModel.savedRecord {
+                                    router.dismissScanAndNavigateToDetail(id: saved.id)
+                                } else {
+                                    router.dismissScanFlow()
+                                }
+                            }
+                        )
+
+                        if let prev = viewModel.previousRecord, let saved = viewModel.savedRecord {
+                            PrimaryPillButton(
+                                title: "Compare with Previous",
+                                icon: "arrow.left.and.right",
+                                style: .bordered,
+                                action: {
+                                    router.dismissScanAndPresentComparison(record1: prev, record2: saved)
+                                }
+                            )
+                        }
+
+                        Button(action: {
+                            router.dismissScanFlow()
+                        }) {
+                            Text("Done")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(AppTheme.textSecondary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                        }
+                    } else {
+                        Button(action: {
+                            isSaving = true
+                            Task {
+                                let success = await viewModel.saveRecord()
+                                isSaving = false
+                                if success {
+                                    onSaveCompleted()
+                                }
+                            }
+                        }) {
+                            HStack(spacing: 8) {
+                                if isSaving {
+                                    ProgressView()
+                                        .tint(.white)
+                                }
+                                Text(isSaving ? "Saving Record..." : "Save Record")
+                                    .font(.system(size: 16, weight: .semibold))
+                            }
+                            .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
+                            .padding(.vertical, 16)
+                            .background(AppTheme.textPrimary)
+                            .clipShape(Capsule())
+                        }
+                        .disabled(isSaving)
+
+                        Button(action: {
+                            viewModel.retakeCurrent()
+                        }) {
+                            Text("Retake Photos")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(AppTheme.textSecondary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                        }
                     }
                 }
                 .padding(.top, 10)

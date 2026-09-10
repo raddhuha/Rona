@@ -12,6 +12,7 @@ import Combine
 @MainActor
 public struct ReportView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var router: AppRouter
     @StateObject private var viewModel: ReportViewModel
 
     public init(viewModel: ReportViewModel) {
@@ -137,8 +138,49 @@ public struct ReportView: View {
                     // Bottom Insight Card
                     InsightCardView(
                         insight: viewModel.insight,
-                        title: "Insight"
+                        title: "Insight",
+                        showDataAction: {
+                            router.navigateToRecords()
+                        }
                     )
+
+                    // Quick Comparison for period if at least 2 records exist
+                    if let pair = viewModel.comparisonPair {
+                        Button(action: {
+                            router.presentComparison(record1: pair.0, record2: pair.1)
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrow.left.and.right")
+                                Text("Compare Start & End of Period")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            .foregroundColor(AppTheme.textPrimary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(uiColor: .systemGray6))
+                            .clipShape(Capsule())
+                        }
+                    }
+
+                    // Navigation Shortcuts
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("More")
+                            .font(AppTheme.sectionTitleFont)
+                            .foregroundColor(AppTheme.textPrimary)
+
+                        NavigationRowCard(title: "View All Records") {
+                            router.navigateToRecords()
+                        }
+
+                        PrimaryPillButton(
+                            title: "Scan Now",
+                            style: .bordered,
+                            action: {
+                                router.presentScanFlow()
+                            }
+                        )
+                    }
+                    .padding(.top, 4)
                     .padding(.bottom, 36)
                 }
                 .padding(.horizontal, 20)

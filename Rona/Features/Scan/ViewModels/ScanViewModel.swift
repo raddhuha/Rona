@@ -38,6 +38,8 @@ public final class ScanViewModel: ObservableObject {
     @Published public var sessionResult: SkinScanSession?
     @Published public var comparisonInsight: SkinInsight?
     @Published public var isSaved: Bool = false
+    @Published public var savedRecord: ScanRecord?
+    @Published public var previousRecord: ScanRecord?
     @Published public var errorMessage: String?
 
     private let acneDetector: AcneDetectorProtocol
@@ -100,6 +102,9 @@ public final class ScanViewModel: ObservableObject {
             leftImage = nil
             rightImage = nil
             sessionResult = nil
+            savedRecord = nil
+            previousRecord = nil
+            isSaved = false
         default:
             break
         }
@@ -143,6 +148,7 @@ public final class ScanViewModel: ObservableObject {
 
             // Compare with previous record if one exists
             if let previous = try await scanRepository.getPreviousRecord(before: Date()) {
+                self.previousRecord = previous
                 let comp = ScanComparison(
                     previousDate: previous.date,
                     currentDate: session.date,
@@ -157,6 +163,7 @@ public final class ScanViewModel: ObservableObject {
                 )
                 self.comparisonInsight = insightGenerator.generateInsight(comparison: comp)
             } else {
+                self.previousRecord = nil
                 self.comparisonInsight = insightGenerator.generateInitialInsight(
                     for: session.date,
                     skinScore: session.skinScore,
@@ -191,7 +198,7 @@ public final class ScanViewModel: ObservableObject {
             let rightPath = try imageStorage.saveImage(right, named: "\(dayId)_right.jpg")
 
             // Persist to SwiftData repository (replaces same-day record if one exists)
-            _ = try await scanRepository.saveOrUpdate(
+            let record = try await scanRepository.saveOrUpdate(
                 date: session.date,
                 frontImagePath: frontPath,
                 leftImagePath: leftPath,
@@ -200,6 +207,7 @@ public final class ScanViewModel: ObservableObject {
                 detections: session.detections
             )
 
+            self.savedRecord = record
             NotificationCenter.default.post(name: NSNotification.Name("RonaDataDidUpdate"), object: nil)
             isSaved = true
             return true

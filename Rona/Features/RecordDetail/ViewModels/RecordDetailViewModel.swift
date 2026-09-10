@@ -14,6 +14,7 @@ public final class RecordDetailViewModel: ObservableObject {
     public let recordId: UUID
 
     @Published public var record: ScanRecord?
+    @Published public var previousRecord: ScanRecord?
     @Published public var frontImage: UIImage?
     @Published public var leftImage: UIImage?
     @Published public var rightImage: UIImage?
@@ -42,6 +43,7 @@ public final class RecordDetailViewModel: ObservableObject {
                 frontImage = imageStorage.loadImage(fromPath: found.frontImagePath)
                 leftImage = imageStorage.loadImage(fromPath: found.leftImagePath)
                 rightImage = imageStorage.loadImage(fromPath: found.rightImagePath)
+                previousRecord = try await scanRepository.getPreviousRecord(before: found.date)
             }
         } catch {
             print("Failed to load record details: \(error)")
