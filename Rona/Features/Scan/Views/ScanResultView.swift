@@ -303,6 +303,7 @@ public struct ScanResultView: View {
                         showScoreInfoSheet = false
                     }
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .presentationDetents([.medium])

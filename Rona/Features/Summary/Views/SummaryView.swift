@@ -131,6 +131,7 @@ public struct SummaryView: View {
                     .accessibilityIdentifier("summary_settings_button")
                 }
             }
+            .sharedBackgroundVisibility(.hidden)
         }
         .sheet(isPresented: $isSettingsPresented) {
             settingsSheetView
@@ -261,6 +262,7 @@ public struct SummaryView: View {
                         isSettingsPresented = false
                     }
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
     }

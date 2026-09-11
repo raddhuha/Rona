@@ -68,9 +68,11 @@ public struct RecordDetailView: View {
             ToolbarItem(placement: .topBarLeading) {
                 backButton
             }
+            .sharedBackgroundVisibility(.hidden)
             ToolbarItem(placement: .topBarTrailing) {
                 deleteButton
             }
+            .sharedBackgroundVisibility(.hidden)
         }
         .task {
             await viewModel.loadRecord()

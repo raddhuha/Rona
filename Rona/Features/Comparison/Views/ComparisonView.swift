@@ -153,6 +153,7 @@ public struct ComparisonView: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("comparison_close_button")
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
             .onAppear {
                 viewModel.loadImages()

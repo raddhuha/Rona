@@ -199,6 +199,7 @@ public struct ReportView: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("report_back_button")
             }
+            .sharedBackgroundVisibility(.hidden)
         }
         .task {
             await viewModel.loadData()

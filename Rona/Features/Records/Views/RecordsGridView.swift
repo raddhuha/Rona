@@ -100,6 +100,7 @@ public struct RecordsGridView: View {
                         .accessibilityIdentifier("records_close_compare_button")
                     }
                 }
+                .sharedBackgroundVisibility(.hidden)
             } else {
                 // Normal Mode Toolbar (Leading back button & Trailing compare pill)
                 ToolbarItem(placement: .topBarLeading) {
@@ -117,6 +118,7 @@ public struct RecordsGridView: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("records_back_button")
                 }
+                .sharedBackgroundVisibility(.hidden)
 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
@@ -139,6 +141,7 @@ public struct RecordsGridView: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("records_compare_button")
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .task {
