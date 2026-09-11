@@ -76,3 +76,13 @@ public struct InsightCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous))
     }
 }
+
+#Preview {
+    InsightCardView(
+        insight: SkinInsight(
+            title: "Your forehead improved the most",
+            body: "Acne detected on your forehead decreased from 6 to 3."
+        )
+    )
+    .padding()
+}

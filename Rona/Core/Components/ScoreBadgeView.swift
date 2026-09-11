@@ -46,3 +46,7 @@ public struct ScoreBadgeView: View {
         }
     }
 }
+
+#Preview {
+    ScoreBadgeView(score: 80.0)
+}

@@ -58,3 +58,12 @@ public struct EmptyStateView: View {
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous))
     }
 }
+
+#Preview {
+    EmptyStateView(
+        icon: "photo.stack",
+        title: "No Records Available",
+        message: "Complete a skin scan to see your daily photos organized here.",
+        actionTitle: "Scan Now"
+    ) {}
+}

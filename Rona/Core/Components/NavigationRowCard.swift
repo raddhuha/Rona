@@ -52,3 +52,7 @@ public struct NavigationRowCard: View {
         .shadow(color: Color.black.opacity(0.02), radius: 6, x: 0, y: 2)
     }
 }
+
+#Preview {
+    NavigationRowCard(title: "View All Records")
+}

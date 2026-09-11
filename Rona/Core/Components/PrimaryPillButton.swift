@@ -86,3 +86,7 @@ public struct PrimaryPillButton: View {
         }
     }
 }
+
+#Preview {
+    PrimaryPillButton(title: "Compare") {}
+}

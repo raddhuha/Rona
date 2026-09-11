@@ -69,3 +69,24 @@ public struct AcneBoundingBoxOverlay: View {
         }
     }
 }
+
+#Preview {
+    AcneBoundingBoxOverlay(detections: [
+        AcneDetection(
+            acneType: .type1,
+            facialRegion: .forehead,
+            boundingBox: CGRect(x: 0.35, y: 0.25, width: 0.08, height: 0.06),
+            confidence: 0.92,
+            viewAngle: .front
+        ),
+        AcneDetection(
+            acneType: .type3,
+            facialRegion: .chin,
+            boundingBox: CGRect(x: 0.45, y: 0.70, width: 0.08, height: 0.06),
+            confidence: 0.89,
+            viewAngle: .front
+        )
+    ])
+    .frame(width: 300, height: 400)
+    .background(Color(uiColor: .systemGray6))
+}

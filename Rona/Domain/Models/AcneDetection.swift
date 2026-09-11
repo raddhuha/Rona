@@ -20,10 +20,10 @@ public struct AcneDetection: Identifiable, Codable, Hashable, Sendable {
     public init(
         id: UUID = UUID(),
         acneType: AcneType,
-        facialRegion: FacialRegion,
+        facialRegion: FacialRegion = .forehead,
         boundingBox: CGRect,
-        confidence: Double,
-        viewAngle: ScanViewAngle
+        confidence: Double = 0.9,
+        viewAngle: ScanViewAngle = .front
     ) {
         self.id = id
         self.acneType = acneType

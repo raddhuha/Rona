@@ -88,3 +88,7 @@ extension NavigationHeader where TrailingContent == EmptyView {
         }
     }
 }
+
+#Preview {
+    NavigationHeader(title: "Records")
+}

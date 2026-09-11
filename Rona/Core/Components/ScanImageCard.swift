@@ -12,7 +12,6 @@ public struct ScanImageCard: View {
     private let image: UIImage?
     private let dateText: String
     private let relativeDateText: String?
-    private let headerLabel: String?
     private let borderColor: Color?
     private let borderWidth: CGFloat
     private let isSelected: Bool
@@ -23,7 +22,6 @@ public struct ScanImageCard: View {
         image: UIImage? = nil,
         dateText: String,
         relativeDateText: String? = nil,
-        headerLabel: String? = nil,
         borderColor: Color? = nil,
         borderWidth: CGFloat = 1.8,
         isSelected: Bool = false,
@@ -33,7 +31,6 @@ public struct ScanImageCard: View {
         self.image = image
         self.dateText = dateText
         self.relativeDateText = relativeDateText
-        self.headerLabel = headerLabel
         self.borderColor = borderColor
         self.borderWidth = borderWidth
         self.isSelected = isSelected
@@ -113,4 +110,13 @@ public struct ScanImageCard: View {
                 .stroke(borderColor ?? Color.clear, lineWidth: borderColor != nil ? borderWidth : 0)
         )
     }
+}
+
+#Preview {
+    ScanImageCard(
+        dateText: "13 Aug 2026",
+        relativeDateText: "(6 days ago)"
+    )
+    .frame(width: 170)
+    .padding()
 }
