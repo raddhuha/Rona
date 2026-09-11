@@ -457,7 +457,8 @@ public final class CameraController: NSObject, ObservableObject, AVCapturePhotoC
     public func capturePhoto(completion: @escaping (UIImage?) -> Void) {
         guard let output = photoOutput, isSessionRunning else {
             // Provide simulated capture fallback for simulator or camera-less testing
-            completion(generateSimulatedFacePhoto())
+            let sim = generateSimulatedFacePhoto()
+            completion(cropToPreviewAspect(image: sim))
             return
         }
 
@@ -482,26 +483,35 @@ public final class CameraController: NSObject, ObservableObject, AVCapturePhotoC
 
         Task { @MainActor in
             let uprightImage = originalImage.normalizedUpOrientation()
-            let finalImage: UIImage
-            if self.currentPosition == .front {
-                finalImage = self.cropToNormalZoom(image: uprightImage, zoomFactor: 1.33)
-            } else {
-                finalImage = uprightImage
-            }
+            // Crop image to match the exact preview aspect ratio (280:380) matching what user sees on screen
+            let finalImage = self.cropToPreviewAspect(image: uprightImage)
             self.captureCompletion?(finalImage)
         }
     }
 
-    /// Crops the captured photo so it matches the 1.33x normal camera field of view.
-    private func cropToNormalZoom(image: UIImage, zoomFactor: CGFloat) -> UIImage {
-        guard zoomFactor > 1.0, let cgImage = image.cgImage else { return image }
+    /// Crops the captured photo so its framing and aspect ratio match the on-screen camera preview viewport (280x380).
+    private func cropToPreviewAspect(image: UIImage) -> UIImage {
+        let targetAspect: CGFloat = 280.0 / 380.0
+        guard let cgImage = image.cgImage else { return image }
         let width = CGFloat(cgImage.width)
         let height = CGFloat(cgImage.height)
-        let cropW = width / zoomFactor
-        let cropH = height / zoomFactor
+        guard width > 0, height > 0 else { return image }
+
+        let currentAspect = width / height
+        var cropW = width
+        var cropH = height
+
+        if currentAspect > targetAspect {
+            // Sensor image is wider than the on-screen preview viewport
+            cropW = height * targetAspect
+        } else {
+            // Sensor image is taller than the on-screen preview viewport
+            cropH = width / targetAspect
+        }
+
         let cropX = (width - cropW) / 2.0
         let cropY = (height - cropH) / 2.0
-        let cropRect = CGRect(x: cropX, y: cropY, width: cropW, height: cropH)
+        let cropRect = CGRect(x: cropX, y: cropY, width: cropW, height: cropH).integral
 
         guard let croppedCg = cgImage.cropping(to: cropRect) else { return image }
         return UIImage(cgImage: croppedCg, scale: image.scale, orientation: image.imageOrientation)
