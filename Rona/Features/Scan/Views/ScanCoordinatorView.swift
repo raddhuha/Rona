@@ -111,8 +111,8 @@ public struct ScanCoordinatorView: View {
             #endif
         }
         .onDisappear {
-            cameraController.stopSession()
             stopAlignmentTimer()
+            cameraController.teardownHardwareSession()
         }
     }
 
@@ -156,8 +156,8 @@ public struct ScanCoordinatorView: View {
         }
         .onChange(of: viewModel.currentStep) { newStep in
             if newStep == .processing || newStep == .result {
-                cameraController.stopSession()
                 stopAlignmentTimer()
+                cameraController.teardownHardwareSession()
             } else {
                 cameraController.currentScanAngle = viewModel.currentViewAngle
                 cameraController.startSession()
@@ -165,8 +165,8 @@ public struct ScanCoordinatorView: View {
             }
         }
         .onDisappear {
-            cameraController.stopSession()
             stopAlignmentTimer()
+            cameraController.teardownHardwareSession()
         }
     }
 
@@ -182,8 +182,9 @@ public struct ScanCoordinatorView: View {
             // Leading Circular Back Button
             HStack {
                 Button(action: {
-                    cameraController.stopSession()
                     stopAlignmentTimer()
+                    cameraController.teardownHardwareSession()
+                    router.dismissScanFlow()
                     dismiss()
                 }) {
                     Image(systemName: "chevron.left")

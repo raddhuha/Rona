@@ -65,7 +65,7 @@ public struct CameraPreviewView: UIViewControllerRepresentable {
     }
 
     public static func dismantleUIViewController(_ uiViewController: CameraViewController, coordinator: ()) {
-        uiViewController.stop()
+        uiViewController.dismantle()
     }
 }
 
@@ -97,11 +97,18 @@ public final class CameraViewController: UIViewController {
 
     public override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        stop()
+        dismantle()
+    }
+
+    public func dismantle() {
+        if previewView?.videoPreviewLayer.session != nil {
+            previewView?.videoPreviewLayer.session = nil
+        }
+        cameraController.teardownHardwareSession()
     }
 
     public func stop() {
-        cameraController.stopSession()
+        dismantle()
     }
 
     public func updatePreviewSession() {
@@ -294,6 +301,7 @@ public final class CameraController: NSObject, ObservableObject, AVCapturePhotoC
             setupSession(for: currentPosition)
             return
         }
+        videoDataOutput?.setSampleBufferDelegate(self, queue: videoProcessingQueue)
         guard !session.isRunning else {
             self.isSessionRunning = true
             return
@@ -306,10 +314,11 @@ public final class CameraController: NSObject, ObservableObject, AVCapturePhotoC
         }
     }
 
-    public func stopSession() {
-        self.isSessionRunning = false
-        self.isAligned = false
-        self.alignmentStatus = .noFace
+    /// Safely detaches delegates and stops the hardware capture session asynchronously
+    /// without mutating any @Published properties.
+    /// Safe to call during SwiftUI dismantle / deinit lifecycles to prevent exclusivity violations.
+    public func teardownHardwareSession() {
+        videoDataOutput?.setSampleBufferDelegate(nil, queue: nil)
         guard let session = captureSession else { return }
         DispatchQueue.global(qos: .userInitiated).async {
             if session.isRunning {
@@ -318,9 +327,20 @@ public final class CameraController: NSObject, ObservableObject, AVCapturePhotoC
         }
     }
 
+    public func stopSession() {
+        teardownHardwareSession()
+        self.isSessionRunning = false
+        self.isAligned = false
+        self.alignmentStatus = .noFace
+    }
+
     deinit {
-        if let session = captureSession, session.isRunning {
-            session.stopRunning()
+        if let session = captureSession {
+            DispatchQueue.global(qos: .userInitiated).async {
+                if session.isRunning {
+                    session.stopRunning()
+                }
+            }
         }
     }
 
@@ -345,12 +365,14 @@ public final class CameraController: NSObject, ObservableObject, AVCapturePhotoC
             let observations = request.results as? [VNFaceObservation] ?? []
             let primaryFace = observations.first
 
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
                 self.processDetectedFace(primaryFace)
                 self.isAnalyzingFrame = false
             }
         } catch {
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
                 self.alignmentStatus = .noFace
                 self.isAligned = false
                 self.isAnalyzingFrame = false
