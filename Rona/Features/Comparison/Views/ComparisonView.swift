@@ -8,7 +8,7 @@
 import SwiftUI
 import Combine
 
-/// Comparison sheet presenting side-by-side scan evaluation matching Screenshot 2.
+/// Comparison sheet presenting side-by-side scan evaluation matching design specs.
 @MainActor
 public struct ComparisonView: View {
     @Environment(\.dismiss) private var dismiss
@@ -22,23 +22,7 @@ public struct ComparisonView: View {
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
-            // Sheet Grabber Handle
-            Capsule()
-                .fill(Color(uiColor: .systemGray4))
-                .frame(width: 38, height: 5)
-                .padding(.top, 10)
-                .padding(.bottom, 6)
-
-            // Top Header: Close button and Title
-            NavigationHeader(
-                title: "Comparison",
-                actionType: .close,
-                onLeadingAction: {
-                    dismiss()
-                }
-            )
-
+        NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 22) {
                     // Two Side-by-Side Photo Cards
@@ -89,6 +73,7 @@ public struct ComparisonView: View {
                                     .font(.system(size: 15))
                                     .foregroundColor(AppTheme.textSecondary)
                             }
+                            .buttonStyle(.plain)
                         }
                     }
 
@@ -147,17 +132,36 @@ public struct ComparisonView: View {
                     .padding(.bottom, 36)
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 10)
+                .padding(.top, 14)
             }
-        }
-        .background(AppTheme.background)
-        .onAppear {
-            viewModel.loadImages()
-        }
-        .alert("About Skin Score", isPresented: $showScoreInfoSheet) {
-            Button("Got it", role: .cancel) {}
-        } message: {
-            Text("The skin score is an estimate (0–100%) calculated by assessing lesion severity, density, and distribution across all scanned facial views. This application is a monitoring tool and does not provide medical diagnosis.")
+            .background(AppTheme.background)
+            .navigationTitle("Comparison")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(AppTheme.textPrimary)
+                            .frame(width: 44, height: 44)
+                            .background(Color.white)
+                            .clipShape(Circle())
+                            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("comparison_close_button")
+                }
+            }
+            .onAppear {
+                viewModel.loadImages()
+            }
+            .alert("About Skin Score", isPresented: $showScoreInfoSheet) {
+                Button("Got it", role: .cancel) {}
+            } message: {
+                Text("The skin score is an estimate (0–100%) calculated by assessing lesion severity, density, and distribution across all scanned facial views. This application is a monitoring tool and does not provide medical diagnosis.")
+            }
         }
     }
 }
@@ -166,4 +170,3 @@ public struct ComparisonView: View {
     ComparisonView()
         .environmentObject(AppRouter())
 }
-

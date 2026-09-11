@@ -41,27 +41,8 @@ public struct RecordDetailView: View {
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
+        Group {
             if let record = viewModel.record {
-                // Navigation Header
-                NavigationHeader(
-                    title: record.formattedFullDate,
-                    actionType: .back,
-                    onLeadingAction: {
-                        dismiss()
-                    },
-                    trailing: {
-                        PrimaryPillButton(
-                            title: "Delete",
-                            icon: "trash",
-                            style: .destructive,
-                            action: {
-                                viewModel.showDeleteConfirmation = true
-                            }
-                        )
-                    }
-                )
-
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 20) {
                         // Angle Selector (Front / Left / Right)
@@ -263,7 +244,37 @@ public struct RecordDetailView: View {
             }
         }
         .background(AppTheme.background)
+        .navigationTitle(viewModel.record?.formattedFullDate ?? "")
+        .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(action: {
+                    dismiss()
+                }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .frame(width: 44, height: 44)
+                        .background(Color.white)
+                        .clipShape(Circle())
+                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("record_detail_back_button")
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                PrimaryPillButton(
+                    title: "Delete",
+                    icon: "trash",
+                    style: .destructive,
+                    action: {
+                        viewModel.showDeleteConfirmation = true
+                    }
+                )
+            }
+        }
         .task {
             await viewModel.loadRecord()
         }

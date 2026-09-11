@@ -24,18 +24,8 @@ public struct ReportView: View {
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
-            // Navigation Header
-            NavigationHeader(
-                title: "Report",
-                actionType: .back,
-                onLeadingAction: {
-                    dismiss()
-                }
-            )
-
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 20) {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 20) {
                     // Period Selector Dropdown (Weekly / Monthly / Yearly)
                     Menu {
                         ForEach(TimePeriod.allCases) { period in
@@ -187,11 +177,29 @@ public struct ReportView: View {
                     .padding(.top, 4)
                     .padding(.bottom, 36)
                 }
-                .padding(.horizontal, 20)
-            }
+            .padding(.horizontal, 20)
         }
         .background(AppTheme.background)
+        .navigationTitle("Report")
+        .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(action: {
+                    dismiss()
+                }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .frame(width: 44, height: 44)
+                        .background(Color.white)
+                        .clipShape(Circle())
+                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("report_back_button")
+            }
+        }
         .task {
             await viewModel.loadData()
         }

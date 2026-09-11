@@ -27,9 +27,6 @@ public struct SummaryView: View {
     public var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 18) {
-                // Header Bar: "Summary" title + Camera & Settings buttons
-                headerSection
-
                 // Recent Photos Comparison Preview Cards
                 recentPhotosSection
 
@@ -98,6 +95,43 @@ public struct SummaryView: View {
             .padding(.horizontal, 20)
         }
         .background(AppTheme.background)
+        .navigationTitle("Summary")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                HStack(spacing: 10) {
+                    // Camera Button
+                    Button(action: {
+                        router.presentScanFlow()
+                    }) {
+                        Image(systemName: "camera")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(AppTheme.textPrimary)
+                            .frame(width: 40, height: 40)
+                            .background(Color.white)
+                            .clipShape(Circle())
+                            .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 2)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("summary_camera_button")
+
+                    // Settings Button
+                    Button(action: {
+                        isSettingsPresented = true
+                    }) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(AppTheme.textPrimary)
+                            .frame(width: 40, height: 40)
+                            .background(Color.white)
+                            .clipShape(Circle())
+                            .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 2)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("summary_settings_button")
+                }
+            }
+        }
         .sheet(isPresented: $isSettingsPresented) {
             settingsSheetView
         }
@@ -112,51 +146,6 @@ public struct SummaryView: View {
         .refreshable {
             await viewModel.loadData()
         }
-    }
-
-    // MARK: - Header Bar
-
-    private var headerSection: some View {
-        HStack(alignment: .center) {
-            Text("Summary")
-                .font(.system(size: 34, weight: .bold))
-                .foregroundColor(AppTheme.textPrimary)
-
-            Spacer()
-
-            HStack(spacing: 12) {
-                // Camera Button
-                Button(action: {
-                    router.presentScanFlow()
-                }) {
-                    Image(systemName: "camera")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(AppTheme.textPrimary)
-                        .frame(width: 44, height: 44)
-                        .background(Color.white)
-                        .clipShape(Circle())
-                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("summary_camera_button")
-
-                // Settings Button
-                Button(action: {
-                    isSettingsPresented = true
-                }) {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(AppTheme.textPrimary)
-                        .frame(width: 44, height: 44)
-                        .background(Color.white)
-                        .clipShape(Circle())
-                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("summary_settings_button")
-            }
-        }
-        .padding(.top, 8)
     }
 
     // MARK: - Recent Photos View

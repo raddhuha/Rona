@@ -30,9 +30,8 @@ public struct RecordsGridView: View {
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
-            // Top Navigation Bar
-            topNavigationBar
+        ZStack {
+            AppTheme.background.ignoresSafeArea()
 
             if viewModel.records.isEmpty && !viewModel.isLoading {
                 EmptyStateView(
@@ -44,62 +43,70 @@ public struct RecordsGridView: View {
                     router.presentScanFlow()
                 }
                 .padding(24)
-                .frame(maxHeight: .infinity)
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
-                    LazyVStack(alignment: .leading, spacing: 18) {
+                    LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(viewModel.monthGroups) { group in
                             monthSectionView(for: group)
                         }
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 16)
-                    .padding(.bottom, 40)
+                    .padding(.top, 8)
+                    .padding(.bottom, 36)
                 }
             }
         }
-        .background(AppTheme.background)
+        .navigationTitle(viewModel.isSelectionMode ? "" : "Records")
+        .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
-        .task {
-            await viewModel.loadRecords()
-        }
-    }
-
-    // MARK: - Navigation Bar
-
-    @ViewBuilder
-    private var topNavigationBar: some View {
-        if viewModel.isSelectionMode {
-            // Compare Mode Top Bar (Screenshot 2)
-            HStack(alignment: .center) {
-                Spacer()
-
-                HStack(spacing: 10) {
-                    // "Compare (0/2)" Action Pill
-                    Button(action: {
-                        if let pair = viewModel.selectedRecordsPair {
-                            router.presentComparison(record1: pair.0, record2: pair.1)
+        .toolbar {
+            if viewModel.isSelectionMode {
+                // Compare Mode Toolbar (Right side)
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    HStack(spacing: 10) {
+                        // "Compare (0/2)" Action Pill
+                        Button(action: {
+                            if let pair = viewModel.selectedRecordsPair {
+                                router.presentComparison(record1: pair.0, record2: pair.1)
+                            }
+                        }) {
+                            Text("Compare (\(viewModel.selectedRecordIds.count)/2)")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(viewModel.selectedRecordIds.count == 2 ? .white : Color(uiColor: .secondaryLabel))
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(viewModel.selectedRecordIds.count == 2 ? AppTheme.textPrimary : Color(uiColor: .systemGray5))
+                                .clipShape(Capsule())
                         }
-                    }) {
-                        Text("Compare (\(viewModel.selectedRecordIds.count)/2)")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(viewModel.selectedRecordIds.count == 2 ? .white : Color(uiColor: .secondaryLabel))
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                            .background(viewModel.selectedRecordIds.count == 2 ? AppTheme.textPrimary : Color(uiColor: .systemGray5))
-                            .clipShape(Capsule())
+                        .disabled(viewModel.selectedRecordIds.count != 2)
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("records_compare_action_button")
+
+                        // Close "X" Button
+                        Button(action: {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+                                viewModel.toggleSelectionMode()
+                            }
+                        }) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(AppTheme.textPrimary)
+                                .frame(width: 40, height: 40)
+                                .background(Color.white)
+                                .clipShape(Circle())
+                                .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 2)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("records_close_compare_button")
                     }
-                    .disabled(viewModel.selectedRecordIds.count != 2)
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("records_compare_action_button")
-
-                    // Close "X" Button
+                }
+            } else {
+                // Normal Mode Toolbar (Leading back button & Trailing compare pill)
+                ToolbarItem(placement: .topBarLeading) {
                     Button(action: {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            viewModel.toggleSelectionMode()
-                        }
+                        dismiss()
                     }) {
-                        Image(systemName: "xmark")
+                        Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(AppTheme.textPrimary)
                             .frame(width: 44, height: 44)
@@ -108,63 +115,34 @@ public struct RecordsGridView: View {
                             .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityIdentifier("records_close_compare_button")
+                    .accessibilityIdentifier("records_back_button")
                 }
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .transition(.opacity)
-        } else {
-            // Normal Mode Top Bar (Screenshot 1)
-            HStack(alignment: .center) {
-                // Leading Circular Back Button
-                Button(action: {
-                    dismiss()
-                }) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(AppTheme.textPrimary)
-                        .frame(width: 44, height: 44)
-                        .background(Color.white)
-                        .clipShape(Circle())
-                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("records_back_button")
 
-                Spacer()
-
-                // Centered Title
-                Text("Records")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(AppTheme.textPrimary)
-
-                Spacer()
-
-                // Trailing "Compare" Pill Button
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        viewModel.toggleSelectionMode()
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+                            viewModel.toggleSelectionMode()
+                        }
+                    }) {
+                        Text("Compare")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(AppTheme.textPrimary)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 8)
+                            .background(Color.white)
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule().stroke(Color(uiColor: .systemGray4).opacity(0.5), lineWidth: 1)
+                            )
+                            .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
                     }
-                }) {
-                    Text("Compare")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(AppTheme.textPrimary)
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 10)
-                        .background(Color.white)
-                        .clipShape(Capsule())
-                        .overlay(
-                            Capsule().stroke(Color(uiColor: .systemGray4).opacity(0.5), lineWidth: 1)
-                        )
-                        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("records_compare_button")
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("records_compare_button")
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .transition(.opacity)
+        }
+        .task {
+            await viewModel.loadRecords()
         }
     }
 
@@ -174,10 +152,10 @@ public struct RecordsGridView: View {
     private func monthSectionView(for group: MonthRecordGroup) -> some View {
         let isExpanded = viewModel.expandedMonthIds.contains(group.id)
 
-        VStack(alignment: .leading, spacing: 14) {
-            // Header Row (Tap to expand/collapse)
+        VStack(alignment: .leading, spacing: 0) {
+            // Header Row (Tap to expand/collapse naturally)
             Button(action: {
-                withAnimation(.easeInOut(duration: 0.25)) {
+                withAnimation(.spring(response: 0.36, dampingFraction: 0.82)) {
                     viewModel.toggleMonthExpansion(group.id)
                 }
             }) {
@@ -188,16 +166,18 @@ public struct RecordsGridView: View {
 
                     Spacer()
 
-                    Image(systemName: isExpanded ? "chevron.down.circle" : "chevron.right.circle")
+                    Image(systemName: "chevron.right.circle")
                         .font(.system(size: 22, weight: .regular))
                         .foregroundColor(AppTheme.textPrimary)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 }
+                .padding(.vertical, 14)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
             if isExpanded {
-                // 3-Column Card Grid
+                // 3-Column Card Grid expands naturally in place
                 LazyVGrid(columns: columns, spacing: 10) {
                     ForEach(group.records) { record in
                         let isSelected = viewModel.selectedRecordIds.contains(record.id)
@@ -218,20 +198,23 @@ public struct RecordsGridView: View {
                         )
                     }
                 }
-                .transition(.opacity.combined(with: .move(edge: .top)))
-                .padding(.bottom, 8)
+                .transition(.opacity)
+                .padding(.top, 6)
+                .padding(.bottom, 20)
             } else {
                 // Divider line below collapsed month
                 Rectangle()
                     .fill(Color(uiColor: .systemGray5))
                     .frame(height: 1)
-                    .padding(.top, 2)
+                    .padding(.bottom, 4)
             }
         }
     }
 }
 
 #Preview {
-    RecordsGridView()
-        .environmentObject(AppRouter())
+    NavigationStack {
+        RecordsGridView()
+            .environmentObject(AppRouter())
+    }
 }
