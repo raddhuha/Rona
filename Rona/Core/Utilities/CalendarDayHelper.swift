@@ -54,11 +54,6 @@ public enum CalendarDayHelper {
         fullDisplayDateFormatter.string(from: date)
     }
 
-    /// Parses a calendarDayId back to Date if needed.
-    public static func date(fromDayId dayId: String) -> Date? {
-        dayFormatter.date(from: dayId)
-    }
-
     /// Formats relative time description like "(7 days ago)" or "(6 days ago)"
     public static func formatRelativeDays(for date: Date, relativeTo: Date = Date(), calendar: Calendar = .current) -> String {
         let start1 = calendar.startOfDay(for: date)

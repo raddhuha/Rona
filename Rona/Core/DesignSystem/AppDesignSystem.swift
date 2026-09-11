@@ -21,7 +21,8 @@ public enum AppTheme {
     public static let textMuted = Color(red: 0.65, green: 0.67, blue: 0.72)
 
     // Visual Accent Colors (from reference screenshots)
-    public static let accentBlue = Color(red: 0.23, green: 0.48, blue: 0.96)
+    public static let primary = Color(red: 0.23, green: 0.48, blue: 0.96)
+    public static let accentBlue = primary
     public static let accentPink = Color(red: 0.98, green: 0.22, blue: 0.65)
     public static let accentGreen = Color(red: 0.20, green: 0.78, blue: 0.35)
     public static let accentDestructive = Color(red: 0.92, green: 0.24, blue: 0.24)

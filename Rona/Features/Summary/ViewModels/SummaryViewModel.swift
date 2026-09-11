@@ -22,13 +22,11 @@ public final class SummaryViewModel: ObservableObject {
     @Published public var progressHeadline: String = "You've made steady progress this last 30 days — whatever you're doing, it's working!"
     @Published public var currentSkinScore: Int = 80
     @Published public var sparklinePoints: [CGPoint] = SummaryProgressCard.defaultPoints
-    @Published public var checkInMessage: String = ""
     @Published public var isLoading: Bool = false
 
     private let scanRepository: ScanRepositoryProtocol
     private let insightGenerator: InsightGenerating
     private let imageStorage: ImageStorageProtocol
-    private let checkInIntervalDays: Int = 7
 
     public init(
         scanRepository: ScanRepositoryProtocol,
@@ -69,10 +67,6 @@ public final class SummaryViewModel: ObservableObject {
 
             // Compute comparison insight
             updateInsight()
-
-            // Compute next check-in message
-            updateCheckInMessage()
-
         } catch {
             print("Failed to load summary records: \(error)")
         }
@@ -128,29 +122,6 @@ public final class SummaryViewModel: ObservableObject {
         } else {
             comparisonInsight = SkinInsight.initialPlaceholder
             observations = insightGenerator.generateDefaultObservations()
-        }
-    }
-
-    private func updateCheckInMessage() {
-        guard let latest = latestRecord else {
-            checkInMessage = "You have not recorded any skin scans yet. Take your first scan to start tracking your skin progression."
-            return
-        }
-
-        let calendar = Calendar.current
-        let nextCheckInDate = calendar.date(byAdding: .day, value: checkInIntervalDays, to: latest.date) ?? latest.date
-        let today = Date()
-
-        let daysLeft = calendar.dateComponents([.day], from: calendar.startOfDay(for: today), to: calendar.startOfDay(for: nextCheckInDate)).day ?? 0
-        let formattedDate = CalendarDayHelper.formatDisplayDate(nextCheckInDate)
-
-        if daysLeft > 0 {
-            checkInMessage = "Your next regular check-in is on \(formattedDate) (\(daysLeft) days left)\nYou're free to scan today too, if you'd like to see how your skin's doing right now."
-        } else if daysLeft == 0 {
-            checkInMessage = "Your regular check-in is scheduled for today (\(formattedDate)).\nTake a few moments to scan your skin and log your progress."
-        } else {
-            let overdue = abs(daysLeft)
-            checkInMessage = "Your regular check-in was due \(overdue) day\(overdue == 1 ? "" : "s") ago on \(formattedDate).\nScan today to keep your progress chart up to date."
         }
     }
 }

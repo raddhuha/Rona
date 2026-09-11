@@ -53,10 +53,6 @@ struct RonaApp: App {
                 .environmentObject(container)
                 .environmentObject(router)
                 .task {
-                    #if DEBUG
-                    _ = await AppLogicVerificationTests.runAllTests()
-                    #endif
-
                     // Preload initial sample records (matching 13 Aug & 15 Aug from screenshots)
                     await SampleDataSeeder.seedInitialDataIfNeeded(
                         repository: container.scanRepository,

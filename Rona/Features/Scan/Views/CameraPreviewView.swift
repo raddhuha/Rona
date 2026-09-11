@@ -7,9 +7,48 @@
 
 import SwiftUI
 @preconcurrency import AVFoundation
+import Vision
 import Combine
 
-/// Handles AVCaptureSession camera preview with simulated fallback for iOS Simulator.
+/// Real-time status of face alignment within the on-screen circle guide.
+public enum FaceAlignmentStatus: Equatable {
+    case noFace
+    case notInCircle
+    case lookStraight
+    case turnRight
+    case turnLeft
+    case aligned
+
+    public func userGuidance(for angle: ScanViewAngle) -> String {
+        switch self {
+        case .noFace:
+            return "Position your face inside the circle"
+        case .notInCircle:
+            return "Align your face inside the circle"
+        case .lookStraight:
+            return "Look straight ahead"
+        case .turnRight:
+            return "Turn your face to the right"
+        case .turnLeft:
+            return "Turn your face to the left"
+        case .aligned:
+            return "Hold still — capturing..."
+        }
+    }
+}
+
+/// Custom UIView whose backing layer is AVCaptureVideoPreviewLayer.
+public final class PreviewUIView: UIView {
+    public override class var layerClass: AnyClass {
+        AVCaptureVideoPreviewLayer.self
+    }
+
+    public var videoPreviewLayer: AVCaptureVideoPreviewLayer {
+        layer as! AVCaptureVideoPreviewLayer
+    }
+}
+
+/// Handles AVCaptureSession camera preview with real-time video preview and simulated fallback.
 public struct CameraPreviewView: UIViewControllerRepresentable {
     @ObservedObject public var cameraController: CameraController
 
@@ -22,13 +61,13 @@ public struct CameraPreviewView: UIViewControllerRepresentable {
     }
 
     public func updateUIViewController(_ uiViewController: CameraViewController, context: Context) {
-        uiViewController.updatePreviewLayer()
+        uiViewController.updatePreviewSession()
     }
 }
 
 public final class CameraViewController: UIViewController {
     private let cameraController: CameraController
-    private var previewLayer: AVCaptureVideoPreviewLayer?
+    private var previewView: PreviewUIView!
     private var placeholderImageView: UIImageView?
 
     public init(cameraController: CameraController) {
@@ -40,67 +79,75 @@ public final class CameraViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
-    public override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = .clear
-
-        let imageView = UIImageView(image: cameraController.generateSimulatedFacePhoto())
-        imageView.contentMode = .scaleAspectFill
-        imageView.clipsToBounds = true
-        imageView.transform = CGAffineTransform(scaleX: 1.08, y: 1.08)
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(imageView)
-        NSLayoutConstraint.activate([
-            imageView.topAnchor.constraint(equalTo: view.topAnchor),
-            imageView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            imageView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
-        ])
-        self.placeholderImageView = imageView
-
-        updatePreviewLayer()
+    public override func loadView() {
+        previewView = PreviewUIView()
+        previewView.backgroundColor = .black
+        previewView.videoPreviewLayer.videoGravity = .resizeAspectFill
+        view = previewView
     }
 
-    public func updatePreviewLayer() {
-        if let session = cameraController.captureSession, cameraController.isSessionRunning {
-            if previewLayer?.session !== session {
-                previewLayer?.removeFromSuperlayer()
-                let layer = AVCaptureVideoPreviewLayer(session: session)
-                layer.videoGravity = .resizeAspectFill
-                layer.frame = view.bounds
-                view.layer.insertSublayer(layer, at: 0)
-                self.previewLayer = layer
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        updatePreviewSession()
+    }
+
+    public func updatePreviewSession() {
+        if let session = cameraController.captureSession {
+            if previewView.videoPreviewLayer.session !== session {
+                previewView.videoPreviewLayer.session = session
             }
-            placeholderImageView?.isHidden = true
-        } else {
-            placeholderImageView?.isHidden = false
+            if let connection = previewView.videoPreviewLayer.connection {
+                if connection.isVideoOrientationSupported {
+                    connection.videoOrientation = .portrait
+                }
+                if connection.isVideoMirroringSupported {
+                    connection.automaticallyAdjustsVideoMirroring = false
+                    connection.isVideoMirrored = (cameraController.currentPosition == .front)
+                }
+            }
+            placeholderImageView?.removeFromSuperview()
+            placeholderImageView = nil
+        } else if !cameraController.isHardwareAvailable {
+            showPlaceholder()
         }
     }
 
-    public override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        previewLayer?.frame = view.bounds
+    private func showPlaceholder() {
+        guard placeholderImageView == nil else { return }
+        let iv = UIImageView(image: cameraController.generateSimulatedFacePhoto())
+        iv.contentMode = .scaleAspectFill
+        iv.clipsToBounds = true
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(iv)
+        NSLayoutConstraint.activate([
+            iv.topAnchor.constraint(equalTo: view.topAnchor),
+            iv.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            iv.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            iv.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
+        placeholderImageView = iv
     }
 }
 
-/// Controller managing camera permissions, capture session, and photo capture.
-/// Strictly enforces the 1x Normal Camera perspective (avoiding 0.5x ultra-wide distortion).
+/// Controller managing live camera permissions, capture session, real-time face alignment, and photo capture.
 @MainActor
-public final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureDelegate {
-    public nonisolated let objectWillChange = ObservableObjectPublisher()
+public final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureDelegate, AVCaptureVideoDataOutputSampleBufferDelegate {
 
-    @Published public var isCameraAuthorized: Bool = false
     @Published public var isSessionRunning: Bool = false
     @Published public var isHardwareAvailable: Bool = true
     @Published public var currentPosition: AVCaptureDevice.Position = .front
+    @Published public var currentScanAngle: ScanViewAngle = .front
+
+    @Published public var alignmentStatus: FaceAlignmentStatus = .noFace
+    @Published public var isAligned: Bool = false
 
     public var captureSession: AVCaptureSession?
     private var photoOutput: AVCapturePhotoOutput?
-    private var activeDevice: AVCaptureDevice?
+    private var videoDataOutput: AVCaptureVideoDataOutput?
     private var captureCompletion: ((UIImage?) -> Void)?
 
-    // 1x Normal zoom factor for front TrueDepth camera (which physically starts at ~0.7x/0.5x)
-    private let frontNormalZoomFactor: CGFloat = 1.33
+    private let videoProcessingQueue = DispatchQueue(label: "com.rona.faceProcessingQueue", qos: .userInteractive)
+    nonisolated(unsafe) private var isAnalyzingFrame = false
 
     public override init() {
         super.init()
@@ -110,12 +157,10 @@ public final class CameraController: NSObject, ObservableObject, AVCapturePhotoC
     public func checkPermissions() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
-            isCameraAuthorized = true
             setupSession(for: currentPosition)
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
                 DispatchQueue.main.async {
-                    self?.isCameraAuthorized = granted
                     if granted {
                         self?.setupSession(for: self?.currentPosition ?? .front)
                     } else {
@@ -124,7 +169,6 @@ public final class CameraController: NSObject, ObservableObject, AVCapturePhotoC
                 }
             }
         default:
-            isCameraAuthorized = false
             isHardwareAvailable = false
         }
     }
@@ -136,77 +180,191 @@ public final class CameraController: NSObject, ObservableObject, AVCapturePhotoC
     }
 
     public func setupSession(for position: AVCaptureDevice.Position) {
-        // Stop any running session cleanly
+        // Stop existing session cleanly
         if let existingSession = captureSession {
             DispatchQueue.global(qos: .userInitiated).async {
                 existingSession.stopRunning()
             }
             self.captureSession = nil
             self.photoOutput = nil
-            self.activeDevice = nil
+            self.videoDataOutput = nil
             self.isSessionRunning = false
         }
 
         let session = AVCaptureSession()
         session.sessionPreset = .photo
 
-        // Strictly target the standard builtInWideAngleCamera (1x Normal Camera), NOT builtInUltraWideCamera (0.5x)
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position)
                 ?? AVCaptureDevice.default(for: .video) else {
             isHardwareAvailable = false
             return
         }
 
-        // Configure normal 1x perspective
-        configureNormalZoom(for: device, position: position)
-
         guard let input = try? AVCaptureDeviceInput(device: device) else {
             isHardwareAvailable = false
             return
         }
 
-        let output = AVCapturePhotoOutput()
-        if session.canAddInput(input) && session.canAddOutput(output) {
+        let photoOut = AVCapturePhotoOutput()
+        let videoOut = AVCaptureVideoDataOutput()
+        videoOut.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
+        videoOut.alwaysDiscardsLateVideoFrames = true
+        videoOut.setSampleBufferDelegate(self, queue: videoProcessingQueue)
+
+        session.beginConfiguration()
+        if session.canAddInput(input) {
             session.addInput(input)
-            session.addOutput(output)
-            self.activeDevice = device
-            self.captureSession = session
-            self.photoOutput = output
-            self.isHardwareAvailable = true
+        }
+        if session.canAddOutput(photoOut) {
+            session.addOutput(photoOut)
+        }
+        if session.canAddOutput(videoOut) {
+            session.addOutput(videoOut)
+        }
 
-            DispatchQueue.global(qos: .userInitiated).async {
-                session.startRunning()
-                DispatchQueue.main.async {
-                    self.isSessionRunning = true
-                }
+        // Configure video orientation and mirroring on photo and video connections
+        if let photoConnection = photoOut.connection(with: .video) {
+            if photoConnection.isVideoOrientationSupported {
+                photoConnection.videoOrientation = .portrait
             }
-        } else {
-            isHardwareAvailable = false
+            if photoConnection.isVideoMirroringSupported {
+                photoConnection.automaticallyAdjustsVideoMirroring = false
+                photoConnection.isVideoMirrored = (position == .front)
+            }
+        }
+
+        if let videoConnection = videoOut.connection(with: .video) {
+            if videoConnection.isVideoOrientationSupported {
+                videoConnection.videoOrientation = .portrait
+            }
+            if videoConnection.isVideoMirroringSupported {
+                videoConnection.automaticallyAdjustsVideoMirroring = false
+                videoConnection.isVideoMirrored = (position == .front)
+            }
+        }
+
+        session.commitConfiguration()
+
+        self.captureSession = session
+        self.photoOutput = photoOut
+        self.videoDataOutput = videoOut
+        self.isHardwareAvailable = true
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            session.startRunning()
+            DispatchQueue.main.async {
+                self.isSessionRunning = session.isRunning
+            }
         }
     }
 
-    /// Configures the optical zoom to 1x normal camera perspective (not 0.5x ultra-wide).
-    private func configureNormalZoom(for device: AVCaptureDevice, position: AVCaptureDevice.Position) {
+    // MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
+
+    public nonisolated func captureOutput(
+        _ output: AVCaptureOutput,
+        didOutput sampleBuffer: CMSampleBuffer,
+        from connection: AVCaptureConnection
+    ) {
+        guard !isAnalyzingFrame else { return }
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+
+        isAnalyzingFrame = true
+
+        let request = VNDetectFaceRectanglesRequest()
+        request.revision = VNDetectFaceRectanglesRequestRevision3
+
+        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])
         do {
-            try device.lockForConfiguration()
-            if position == .front {
-                // Front TrueDepth camera physically has a ~23mm ultra-wide field of view (~0.7x-0.5x).
-                // Zooming to 1.33x yields the standard 1x normal selfie camera framing.
-                let targetZoom = frontNormalZoomFactor
-                let clamped = max(device.minAvailableVideoZoomFactor, min(targetZoom, device.maxAvailableVideoZoomFactor))
-                device.videoZoomFactor = clamped
-            } else {
-                // Back Main camera is already 1x standard wide angle (24mm-26mm).
-                // Ensure zoom factor is strictly 1.0 (not 0.5x ultra-wide).
-                let targetZoom: CGFloat = 1.0
-                let clamped = max(device.minAvailableVideoZoomFactor, min(targetZoom, device.maxAvailableVideoZoomFactor))
-                device.videoZoomFactor = clamped
+            try handler.perform([request])
+            let observations = request.results as? [VNFaceObservation] ?? []
+            let primaryFace = observations.first
+
+            Task { @MainActor in
+                self.processDetectedFace(primaryFace)
+                self.isAnalyzingFrame = false
             }
-            device.unlockForConfiguration()
         } catch {
-            print("Could not lock camera device for zoom configuration: \(error)")
+            Task { @MainActor in
+                self.alignmentStatus = .noFace
+                self.isAligned = false
+                self.isAnalyzingFrame = false
+            }
         }
     }
+
+    private func processDetectedFace(_ face: VNFaceObservation?) {
+        guard let face = face else {
+            self.alignmentStatus = .noFace
+            self.isAligned = false
+            return
+        }
+
+        // Vision coordinates: (0,0) is bottom-left, (1,1) is top-right.
+        // Convert to standard UI normalized coordinates: (0,0) is top-left.
+        let box = face.boundingBox
+        let uiX = box.origin.x
+        let uiY = 1.0 - box.origin.y - box.height
+        let uiW = box.width
+        let uiH = box.height
+
+        let faceCenterX = uiX + uiW / 2.0
+        let faceCenterY = uiY + uiH / 2.0
+
+        // Yaw angle in degrees (head rotation left/right around vertical axis)
+        let yawRadians = face.yaw?.doubleValue ?? 0.0
+        let yawDegrees = yawRadians * 180.0 / .pi
+
+        // Circle Alignment Check:
+        // When video fills the circle view with .resizeAspectFill, the center of the circle
+        // is at (0.5, 0.5) in the camera frame.
+        let dx = abs(faceCenterX - 0.5)
+        let dy = abs(faceCenterY - 0.5)
+        let isCenteredInCircle = (dx <= 0.18) && (dy <= 0.20)
+
+        // Check if face size reasonably fits inside the circle (not spilling far outside or tiny dot)
+        let fitsCircle = (uiH >= 0.26 && uiH <= 0.78) && (uiW >= 0.22 && uiW <= 0.72)
+
+        guard isCenteredInCircle && fitsCircle else {
+            self.alignmentStatus = .notInCircle
+            self.isAligned = false
+            return
+        }
+
+        // Step-specific pose check:
+        // Front: look straight ahead into the circle
+        // Right: user turned head to the right
+        // Left: user turned head to the left
+        switch currentScanAngle {
+        case .front:
+            if abs(yawDegrees) > 16.0 {
+                self.alignmentStatus = .lookStraight
+                self.isAligned = false
+            } else {
+                self.alignmentStatus = .aligned
+                self.isAligned = true
+            }
+
+        case .right:
+            if yawDegrees > 14.0 || (face.yaw != nil && yawDegrees > 12.0) {
+                self.alignmentStatus = .aligned
+                self.isAligned = true
+            } else {
+                self.alignmentStatus = .turnRight
+                self.isAligned = false
+            }
+
+        case .left:
+            if yawDegrees < -14.0 || (face.yaw != nil && yawDegrees < -12.0) {
+                self.alignmentStatus = .aligned
+                self.isAligned = true
+            } else {
+                self.alignmentStatus = .turnLeft
+                self.isAligned = false
+            }
+        }
+    }
+
+    // MARK: - Photo Capture
 
     public func capturePhoto(completion: @escaping (UIImage?) -> Void) {
         guard let output = photoOutput, isSessionRunning else {
@@ -220,8 +378,13 @@ public final class CameraController: NSObject, ObservableObject, AVCapturePhotoC
         output.capturePhoto(with: settings, delegate: self)
     }
 
-    public nonisolated func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-        guard let data = photo.fileDataRepresentation(),
+    public nonisolated func photoOutput(
+        _ output: AVCapturePhotoOutput,
+        didFinishProcessingPhoto photo: AVCapturePhoto,
+        error: Error?
+    ) {
+        guard error == nil,
+              let data = photo.fileDataRepresentation(),
               let originalImage = UIImage(data: data) else {
             Task { @MainActor in
                 self.captureCompletion?(nil)
@@ -230,37 +393,13 @@ public final class CameraController: NSObject, ObservableObject, AVCapturePhotoC
         }
 
         Task { @MainActor in
-            // If front camera was framed at 1.33x normal zoom, crop output photo to match 1x normal perspective
-            let finalImage: UIImage
-            if self.currentPosition == .front {
-                finalImage = self.cropToNormalZoom(image: originalImage, zoomFactor: self.frontNormalZoomFactor)
-            } else {
-                finalImage = originalImage
-            }
-            self.captureCompletion?(finalImage)
+            let uprightImage = originalImage.normalizedUpOrientation()
+            self.captureCompletion?(uprightImage)
         }
-    }
-
-    /// Crops the captured photo so it matches the 1x normal camera field of view.
-    private func cropToNormalZoom(image: UIImage, zoomFactor: CGFloat) -> UIImage {
-        guard zoomFactor > 1.0, let cgImage = image.cgImage else { return image }
-        let width = CGFloat(cgImage.width)
-        let height = CGFloat(cgImage.height)
-        let cropW = width / zoomFactor
-        let cropH = height / zoomFactor
-        let cropX = (width - cropW) / 2.0
-        let cropY = (height - cropH) / 2.0
-        let cropRect = CGRect(x: cropX, y: cropY, width: cropW, height: cropH)
-
-        guard let croppedCg = cgImage.cropping(to: cropRect) else { return image }
-        return UIImage(cgImage: croppedCg, scale: image.scale, orientation: image.imageOrientation)
     }
 
     /// Generates a clean synthetic face image for simulator testing.
     public func generateSimulatedFacePhoto() -> UIImage {
-        if let face = UIImage(contentsOfFile: "/Users/raddhuha/Work/academy/C5/Rona/sample_face.png") {
-            return face
-        }
         let size = CGSize(width: 600, height: 800)
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { ctx in
@@ -276,5 +415,19 @@ public final class CameraController: NSObject, ObservableObject, AVCapturePhotoC
             ctx.cgContext.setLineWidth(2.0)
             ctx.cgContext.strokeEllipse(in: faceOval)
         }
+    }
+}
+
+// MARK: - UIImage Orientation Helper
+
+extension UIImage {
+    /// Normalizes image orientation to .up so all downstream CoreML/Vision and UI operations work consistently.
+    public func normalizedUpOrientation() -> UIImage {
+        guard imageOrientation != .up else { return self }
+        UIGraphicsBeginImageContextWithOptions(size, false, scale)
+        draw(in: CGRect(origin: .zero, size: size))
+        let normalized = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        return normalized ?? self
     }
 }

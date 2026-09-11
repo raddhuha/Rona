@@ -26,8 +26,8 @@ public enum SampleDataSeeder {
             }
 
             // Ensure images exist on disk for 12 Aug and 13 Aug
-            let sampleImage1 = createSyntheticScanImage(label: "12 Aug 2026")
-            let sampleImage2 = createSyntheticScanImage(label: "13 Aug 2026")
+            let sampleImage1 = createSyntheticScanImage()
+            let sampleImage2 = createSyntheticScanImage()
             _ = try? imageStorage.saveImage(sampleImage1, named: "2026-08-12_front.jpg")
             _ = try? imageStorage.saveImage(sampleImage1, named: "2026-08-12_left.jpg")
             _ = try? imageStorage.saveImage(sampleImage1, named: "2026-08-12_right.jpg")
@@ -151,7 +151,7 @@ public enum SampleDataSeeder {
         }
     }
 
-    private static func createSyntheticScanImage(label: String) -> UIImage {
+    private static func createSyntheticScanImage() -> UIImage {
         let size = CGSize(width: 480, height: 640)
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { ctx in

@@ -86,8 +86,4 @@ public final class ScanRecord {
     public func detections(for angle: ScanViewAngle) -> [AcneDetectionRecord] {
         detections.filter { $0.viewAngle == angle }
     }
-
-    public func toDomainDetections() -> [AcneDetection] {
-        detections.map { $0.toDomain() }
-    }
 }
