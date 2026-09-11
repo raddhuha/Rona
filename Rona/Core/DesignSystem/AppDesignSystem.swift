@@ -26,6 +26,7 @@ public enum AppTheme {
     public static let accentPink = Color(red: 0.98, green: 0.22, blue: 0.65)
     public static let accentGreen = Color(red: 0.20, green: 0.78, blue: 0.35)
     public static let accentDestructive = Color(red: 0.92, green: 0.24, blue: 0.24)
+    public static let accentRed = accentDestructive
 
     // MARK: - Dimensions & Radii
 
