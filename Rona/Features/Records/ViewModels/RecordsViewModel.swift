@@ -8,10 +8,26 @@
 import SwiftUI
 import Combine
 
-/// ViewModel managing the 3-column records grid and comparison selection.
+/// Model representing a group of historical scan records for a single calendar month.
+public struct MonthRecordGroup: Identifiable {
+    public var id: String { monthYearString }
+    public let monthYearString: String
+    public let monthDate: Date
+    public let records: [ScanRecord]
+
+    public init(monthYearString: String, monthDate: Date, records: [ScanRecord]) {
+        self.monthYearString = monthYearString
+        self.monthDate = monthDate
+        self.records = records
+    }
+}
+
+/// ViewModel managing the 3-column records grid grouped by month, expansion toggling, and comparison selection.
 @MainActor
 public final class RecordsViewModel: ObservableObject {
     @Published public var records: [ScanRecord] = []
+    @Published public var monthGroups: [MonthRecordGroup] = []
+    @Published public var expandedMonthIds: Set<String> = []
     @Published public var isSelectionMode: Bool = false
     @Published public var selectedRecordIds: Set<UUID> = []
     @Published public var isLoading: Bool = false
@@ -30,8 +46,40 @@ public final class RecordsViewModel: ObservableObject {
 
         do {
             records = try await scanRepository.fetchAll()
+            updateMonthGroups()
         } catch {
             print("Failed to fetch records: \(error)")
+        }
+    }
+
+    private func updateMonthGroups() {
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: records) { record -> Date in
+            CalendarDayHelper.startOfMonth(for: record.date, calendar: calendar)
+        }
+
+        let sortedMonthDates = grouped.keys.sorted(by: >)
+        self.monthGroups = sortedMonthDates.map { monthDate in
+            let sortedRecords = (grouped[monthDate] ?? []).sorted { $0.date > $1.date }
+            let title = CalendarDayHelper.formatMonthYear(monthDate)
+            return MonthRecordGroup(
+                monthYearString: title,
+                monthDate: monthDate,
+                records: sortedRecords
+            )
+        }
+
+        // Automatically expand the latest (first) month by default; all others stay collapsed
+        if let latestMonth = monthGroups.first, expandedMonthIds.isEmpty {
+            expandedMonthIds.insert(latestMonth.id)
+        }
+    }
+
+    public func toggleMonthExpansion(_ monthId: String) {
+        if expandedMonthIds.contains(monthId) {
+            expandedMonthIds.remove(monthId)
+        } else {
+            expandedMonthIds.insert(monthId)
         }
     }
 

@@ -65,24 +65,26 @@ public struct ScanImageCard: View {
                     .fill(Color(uiColor: .systemGray6))
             }
 
-            // Selection indicator badge
+            // Selection indicator badge matching designer mockup
             if isSelectionMode {
                 HStack {
                     Spacer()
                     ZStack {
-                        Circle()
-                            .stroke(Color.white, lineWidth: 2)
-                            .frame(width: 24, height: 24)
-                            .background(isSelected ? AppTheme.accentBlue : Color.black.opacity(0.3))
-                            .clipShape(Circle())
-
                         if isSelected {
+                            Circle()
+                                .fill(AppTheme.textPrimary)
+                                .frame(width: 20, height: 20)
                             Image(systemName: "checkmark")
-                                .font(.system(size: 12, weight: .bold))
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.white)
+                        } else {
+                            Circle()
+                                .stroke(Color(uiColor: .systemGray3), lineWidth: 1.5)
+                                .frame(width: 20, height: 20)
+                                .background(Color.white.opacity(0.3).clipShape(Circle()))
                         }
                     }
-                    .padding(10)
+                    .padding(8)
                 }
             }
 
@@ -95,18 +97,17 @@ public struct ScanImageCard: View {
                         .foregroundColor(Color(uiColor: .secondaryLabel))
                 }
                 Text(dateText)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundColor(AppTheme.textPrimary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
-            .padding(.bottom, 12)
+            .padding(.horizontal, 10)
+            .padding(.bottom, 10)
         }
-        .frame(minHeight: 160)
-        .aspectRatio(0.78, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .aspectRatio(0.74, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(borderColor ?? Color.clear, lineWidth: borderColor != nil ? borderWidth : 0)
         )
     }

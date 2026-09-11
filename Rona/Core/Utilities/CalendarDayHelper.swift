@@ -54,6 +54,25 @@ public enum CalendarDayHelper {
         fullDisplayDateFormatter.string(from: date)
     }
 
+    private static let monthYearFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        formatter.calendar = Calendar.current
+        formatter.timeZone = TimeZone.current
+        return formatter
+    }()
+
+    /// Formats a date in "August 2026" style for month section headers.
+    public static func formatMonthYear(_ date: Date) -> String {
+        monthYearFormatter.string(from: date)
+    }
+
+    /// Returns the start of the month for a given date.
+    public static func startOfMonth(for date: Date, calendar: Calendar = .current) -> Date {
+        let components = calendar.dateComponents([.year, .month], from: date)
+        return calendar.date(from: components) ?? date
+    }
+
     /// Formats relative time description like "(7 days ago)" or "(6 days ago)"
     public static func formatRelativeDays(for date: Date, relativeTo: Date = Date(), calendar: Calendar = .current) -> String {
         let start1 = calendar.startOfDay(for: date)
