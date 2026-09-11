@@ -49,7 +49,7 @@ public struct OvalProgressShape: Shape {
 }
 
 /// Full-screen coordinator orchestrating the 3-step capture (Front, Right, Left)
-/// with oval face alignment ring and automatic capture.
+/// with circular face alignment ring and automatic capture.
 @MainActor
 public struct ScanCoordinatorView: View {
     @Environment(\.dismiss) private var dismiss
@@ -110,6 +110,10 @@ public struct ScanCoordinatorView: View {
             }
             #endif
         }
+        .onDisappear {
+            cameraController.stopSession()
+            stopAlignmentTimer()
+        }
     }
 
     // MARK: - Capture Screen (Steps 1, 2, 3)
@@ -141,19 +145,27 @@ public struct ScanCoordinatorView: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 16)
 
-            // Step Counter at Bottom (0/3)
+            // Step Counter at Bottom
             stepCounterSection
                 .padding(.bottom, 24)
         }
         .onAppear {
             cameraController.currentScanAngle = viewModel.currentViewAngle
+            cameraController.startSession()
             startAlignmentTracking()
         }
-        .onChange(of: viewModel.currentStep) { _ in
-            cameraController.currentScanAngle = viewModel.currentViewAngle
-            startAlignmentTracking()
+        .onChange(of: viewModel.currentStep) { newStep in
+            if newStep == .processing || newStep == .result {
+                cameraController.stopSession()
+                stopAlignmentTimer()
+            } else {
+                cameraController.currentScanAngle = viewModel.currentViewAngle
+                cameraController.startSession()
+                startAlignmentTracking()
+            }
         }
         .onDisappear {
+            cameraController.stopSession()
             stopAlignmentTimer()
         }
     }
@@ -170,6 +182,8 @@ public struct ScanCoordinatorView: View {
             // Leading Circular Back Button
             HStack {
                 Button(action: {
+                    cameraController.stopSession()
+                    stopAlignmentTimer()
                     dismiss()
                 }) {
                     Image(systemName: "chevron.left")
@@ -269,8 +283,8 @@ public struct ScanCoordinatorView: View {
 
     private var stepCounterSection: some View {
         Text(viewModel.stepCounterText)
-            .font(.system(size: 15, weight: .medium))
-            .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.58))
+            .font(.system(size: 14, weight: .medium))
+            .foregroundColor(Color(uiColor: .secondaryLabel))
             .opacity(isStepCompleted ? 0 : 1)
             .animation(.easeInOut(duration: 0.2), value: isStepCompleted)
     }

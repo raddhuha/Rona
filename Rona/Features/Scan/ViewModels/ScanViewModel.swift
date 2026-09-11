@@ -63,9 +63,9 @@ public final class ScanViewModel: ObservableObject {
 
     public var stepCounterText: String {
         switch currentStep {
-        case .front: return "0/3"
-        case .right: return "1/3"
-        case .left: return "2/3"
+        case .front: return "0/3 Front side"
+        case .right: return "1/3 Right side"
+        case .left: return "2/3 Left side"
         default: return ""
         }
     }
@@ -80,7 +80,12 @@ public final class ScanViewModel: ObservableObject {
     }
 
     public var stepSubtitle: String {
-        "Hold still for a moment — the circle border will fill automatically once your face is detected."
+        switch currentStep {
+        case .front: return "Keep your face inside the frame — we'll capture this in a moment."
+        case .right: return "Slowly turn until your face is inside the frame — we'll capture this in a moment."
+        case .left: return "Slowly turn until your face is inside the frame — we'll capture this in a moment."
+        default: return ""
+        }
     }
 
     public var stepCompletionText: String {
