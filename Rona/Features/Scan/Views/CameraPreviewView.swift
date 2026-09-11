@@ -403,17 +403,82 @@ public final class CameraController: NSObject, ObservableObject, AVCapturePhotoC
         let size = CGSize(width: 600, height: 800)
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { ctx in
+            let cg = ctx.cgContext
+
+            // Background
             let rect = CGRect(origin: .zero, size: size)
-            UIColor(red: 0.94, green: 0.88, blue: 0.82, alpha: 1.0).setFill()
+            UIColor(red: 0.94, green: 0.94, blue: 0.95, alpha: 1.0).setFill()
             ctx.fill(rect)
 
-            let faceOval = CGRect(x: 120, y: 150, width: 360, height: 500)
-            UIColor(red: 0.97, green: 0.91, blue: 0.85, alpha: 1.0).setFill()
-            ctx.cgContext.fillEllipse(in: faceOval)
+            // Neck & Shoulders
+            let neckRect = CGRect(x: 230, y: 550, width: 140, height: 160)
+            UIColor(red: 0.87, green: 0.72, blue: 0.64, alpha: 1.0).setFill()
+            ctx.fill(neckRect)
 
-            UIColor(red: 0.80, green: 0.70, blue: 0.65, alpha: 0.5).setStroke()
-            ctx.cgContext.setLineWidth(2.0)
-            ctx.cgContext.strokeEllipse(in: faceOval)
+            let shirtRect = CGRect(x: 100, y: 680, width: 400, height: 120)
+            UIColor(red: 0.35, green: 0.38, blue: 0.42, alpha: 1.0).setFill()
+            ctx.fill(shirtRect)
+
+            // Face Oval
+            let faceOval = CGRect(x: 130, y: 140, width: 340, height: 460)
+            UIColor(red: 0.90, green: 0.76, blue: 0.68, alpha: 1.0).setFill()
+            cg.fillEllipse(in: faceOval)
+
+            // Hair (Top of head)
+            let hairOval = CGRect(x: 120, y: 90, width: 360, height: 230)
+            UIColor(red: 0.12, green: 0.11, blue: 0.11, alpha: 1.0).setFill()
+            cg.fillEllipse(in: hairOval)
+
+            // Re-fill lower face to shape hairline
+            let innerFaceOval = CGRect(x: 130, y: 155, width: 340, height: 440)
+            UIColor(red: 0.90, green: 0.76, blue: 0.68, alpha: 1.0).setFill()
+            cg.fillEllipse(in: innerFaceOval)
+
+            // Eyebrows
+            UIColor(red: 0.16, green: 0.14, blue: 0.13, alpha: 0.9).setFill()
+            let leftBrow = CGRect(x: 185, y: 295, width: 85, height: 12)
+            let rightBrow = CGRect(x: 330, y: 295, width: 85, height: 12)
+            cg.fillEllipse(in: leftBrow)
+            cg.fillEllipse(in: rightBrow)
+
+            // Eyes
+            UIColor(red: 0.20, green: 0.16, blue: 0.14, alpha: 1.0).setFill()
+            let leftEye = CGRect(x: 200, y: 325, width: 55, height: 22)
+            let rightEye = CGRect(x: 345, y: 325, width: 55, height: 22)
+            cg.fillEllipse(in: leftEye)
+            cg.fillEllipse(in: rightEye)
+
+            // Eye whites / highlights
+            UIColor.white.withAlphaComponent(0.85).setFill()
+            cg.fillEllipse(in: CGRect(x: 215, y: 330, width: 10, height: 10))
+            cg.fillEllipse(in: CGRect(x: 360, y: 330, width: 10, height: 10))
+
+            // Nose
+            UIColor(red: 0.82, green: 0.66, blue: 0.58, alpha: 0.85).setFill()
+            let noseRect = CGRect(x: 280, y: 375, width: 40, height: 45)
+            cg.fillEllipse(in: noseRect)
+
+            // Lips
+            UIColor(red: 0.84, green: 0.55, blue: 0.53, alpha: 1.0).setFill()
+            let lipsRect = CGRect(x: 245, y: 470, width: 110, height: 32)
+            cg.fillEllipse(in: lipsRect)
+
+            // Blemishes (Forehead & Cheeks matching designer screenshot)
+            UIColor(red: 0.88, green: 0.35, blue: 0.35, alpha: 0.85).setFill()
+            let blemishes = [
+                CGRect(x: 275, y: 215, width: 14, height: 14),
+                CGRect(x: 240, y: 235, width: 12, height: 12),
+                CGRect(x: 320, y: 230, width: 16, height: 16),
+                CGRect(x: 360, y: 240, width: 12, height: 12),
+                CGRect(x: 180, y: 410, width: 18, height: 18),
+                CGRect(x: 205, y: 435, width: 14, height: 14),
+                CGRect(x: 385, y: 415, width: 16, height: 16),
+                CGRect(x: 415, y: 425, width: 14, height: 14),
+                CGRect(x: 380, y: 445, width: 16, height: 16)
+            ]
+            for b in blemishes {
+                cg.fillEllipse(in: b)
+            }
         }
     }
 }

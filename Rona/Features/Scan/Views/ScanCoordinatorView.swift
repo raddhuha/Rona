@@ -9,8 +9,47 @@ import SwiftUI
 import Combine
 import AudioToolbox
 
+/// Parametric shape tracing the perimeter of an oval / ellipse clockwise from 12 o'clock.
+public struct OvalProgressShape: Shape {
+    public var progress: CGFloat // 0.0 ... 1.0
+
+    public var animatableData: CGFloat {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    public func path(in rect: CGRect) -> Path {
+        var path = Path()
+        guard progress > 0 else { return path }
+
+        let cx = rect.midX
+        let cy = rect.midY
+        let rx = rect.width / 2
+        let ry = rect.height / 2
+
+        let clampedProgress = min(max(progress, 0.0), 1.0)
+        let totalAngle = 2 * CGFloat.pi * clampedProgress
+        let startAngle = -CGFloat.pi / 2
+        let steps = max(Int(clampedProgress * 90), 6)
+
+        for i in 0...steps {
+            let t = startAngle + (totalAngle * CGFloat(i) / CGFloat(steps))
+            let x = cx + rx * cos(t)
+            let y = cy + ry * sin(t)
+
+            if i == 0 {
+                path.move(to: CGPoint(x: x, y: y))
+            } else {
+                path.addLine(to: CGPoint(x: x, y: y))
+            }
+        }
+
+        return path
+    }
+}
+
 /// Full-screen coordinator orchestrating the 3-step capture (Front, Right, Left)
-/// with circular face alignment ring and automatic capture.
+/// with oval face alignment ring and automatic capture.
 @MainActor
 public struct ScanCoordinatorView: View {
     @Environment(\.dismiss) private var dismiss
@@ -81,14 +120,15 @@ public struct ScanCoordinatorView: View {
             topNavigationBar
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
-                .padding(.bottom, 16)
+                .padding(.bottom, 12)
 
             Spacer()
 
-            // Center Circular Viewport with Face Guide and Alignment Progress Ring
-            circleFaceViewport
+            // Center Oval Viewport with Face Guide and Alignment Progress Ring
+            ovalFaceViewport
+                .contentShape(Ellipse())
                 .onTapGesture {
-                    // Tapping circle instantly completes alignment for convenience/testing
+                    // Tapping oval instantly completes alignment for convenience/testing
                     if !isStepCompleted && !isCapturing {
                         triggerAutoCapture()
                     }
@@ -96,14 +136,14 @@ public struct ScanCoordinatorView: View {
 
             Spacer()
 
-            // Instructions / Completion State below Circle
+            // Instructions / Completion State below Oval
             instructionSection
                 .padding(.horizontal, 24)
                 .padding(.bottom, 16)
 
-            // Step Counter at Bottom
+            // Step Counter at Bottom (0/3)
             stepCounterSection
-                .padding(.bottom, 28)
+                .padding(.bottom, 24)
         }
         .onAppear {
             cameraController.currentScanAngle = viewModel.currentViewAngle
@@ -127,7 +167,7 @@ public struct ScanCoordinatorView: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(AppTheme.textPrimary)
 
-            // Leading Circular Back Button and Trailing Camera Switch Button
+            // Leading Circular Back Button
             HStack {
                 Button(action: {
                     dismiss()
@@ -144,78 +184,67 @@ public struct ScanCoordinatorView: View {
                 .accessibilityIdentifier("scan_back_button")
 
                 Spacer()
-
-                Button(action: {
-                    cameraController.switchCamera()
-                }) {
-                    Image(systemName: "camera.rotate")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(AppTheme.textPrimary)
-                        .frame(width: 44, height: 44)
-                        .background(Color.white)
-                        .clipShape(Circle())
-                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("scan_switch_camera_button")
             }
         }
     }
 
-    // MARK: - Circular Face Viewport
+    // MARK: - Oval Face Viewport
 
-    private var circleFaceViewport: some View {
-        let circleDiameter: CGFloat = 300
+    private var ovalFaceViewport: some View {
+        let ovalWidth: CGFloat = 280
+        let ovalHeight: CGFloat = 380
+        let vividGreen = Color(red: 0.0, green: 0.85, blue: 0.08)
+        let darkDashedGray = Color(red: 0.42, green: 0.42, blue: 0.42)
 
         return ZStack {
-            // Live Camera Preview clipped to Circle with smooth frosted blur on completion
+            // Live Camera Preview clipped to Ellipse with frosted blur on completion
             CameraPreviewView(cameraController: cameraController)
-                .frame(width: circleDiameter, height: circleDiameter)
-                .blur(radius: isStepCompleted ? 20 : 0)
-                .clipShape(Circle())
+                .frame(width: ovalWidth, height: ovalHeight)
+                .blur(radius: isStepCompleted ? 18 : 0)
+                .clipShape(Ellipse())
 
             if !isStepCompleted {
-                // Dashed gray circle border (unaligned guide track)
-                Circle()
+                // Dashed dark gray ellipse border (unaligned guide track)
+                Ellipse()
                     .stroke(
-                        Color(uiColor: .systemGray4).opacity(0.85),
-                        style: StrokeStyle(lineWidth: 3.5, dash: [8, 6])
+                        darkDashedGray,
+                        style: StrokeStyle(lineWidth: 3.5, dash: [6, 6])
                     )
-                    .frame(width: circleDiameter, height: circleDiameter)
+                    .frame(width: ovalWidth, height: ovalHeight)
 
-                // Animated Green Progress Ring (tracing clockwise from 12 o'clock)
-                Circle()
-                    .trim(from: 0.0, to: alignmentProgress)
+                // Animated Green Progress Stroke (tracing clockwise from 12 o'clock)
+                OvalProgressShape(progress: alignmentProgress)
                     .stroke(
-                        Color(red: 0.0, green: 0.85, blue: 0.1),
-                        style: StrokeStyle(lineWidth: 4.5, lineCap: .round)
+                        vividGreen,
+                        style: StrokeStyle(lineWidth: 4.5, lineCap: .butt)
                     )
-                    .rotationEffect(.degrees(-90))
-                    .frame(width: circleDiameter, height: circleDiameter)
+                    .frame(width: ovalWidth, height: ovalHeight)
                     .animation(.linear(duration: 0.05), value: alignmentProgress)
             } else {
                 // Completed State: Solid green outline
-                Circle()
-                    .stroke(Color(red: 0.0, green: 0.85, blue: 0.1), lineWidth: 4.5)
-                    .frame(width: circleDiameter, height: circleDiameter)
+                Ellipse()
+                    .stroke(vividGreen, lineWidth: 4.5)
+                    .frame(width: ovalWidth, height: ovalHeight)
             }
         }
-        .frame(width: circleDiameter, height: circleDiameter)
+        .frame(width: ovalWidth, height: ovalHeight)
     }
 
     // MARK: - Instruction Section
 
     private var instructionSection: some View {
-        VStack(spacing: 6) {
+        let vividGreen = Color(red: 0.0, green: 0.85, blue: 0.08)
+
+        return VStack(spacing: 8) {
             if isStepCompleted {
                 HStack(spacing: 8) {
                     Text(viewModel.stepCompletionText)
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(Color(red: 0.0, green: 0.85, blue: 0.1))
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(vividGreen)
 
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(Color(red: 0.0, green: 0.85, blue: 0.1))
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundColor(vividGreen)
                 }
                 .transition(.opacity.combined(with: .scale))
             } else {
@@ -224,44 +253,24 @@ public struct ScanCoordinatorView: View {
                     .foregroundColor(AppTheme.textPrimary)
                     .multilineTextAlignment(.center)
 
-                Text(dynamicSubtitle)
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(cameraController.isAligned ? Color(red: 0.0, green: 0.75, blue: 0.1) : AppTheme.textPrimary)
+                Text(viewModel.stepSubtitle)
+                    .font(.system(size: 14.5, weight: .regular))
+                    .foregroundColor(AppTheme.textPrimary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 16)
-                    .animation(.easeInOut(duration: 0.2), value: dynamicSubtitle)
+                    .lineSpacing(3)
+                    .padding(.horizontal, 24)
             }
         }
-        .frame(height: 64)
+        .frame(height: 72)
         .animation(.easeInOut(duration: 0.25), value: isStepCompleted)
-    }
-
-    private var dynamicSubtitle: String {
-        if cameraController.isHardwareAvailable && cameraController.isSessionRunning {
-            switch cameraController.alignmentStatus {
-            case .noFace:
-                return "Position your face inside the circle"
-            case .notInCircle:
-                return "Align your face inside the circle"
-            case .lookStraight:
-                return "Look straight ahead"
-            case .turnRight:
-                return "Turn your face to the right"
-            case .turnLeft:
-                return "Turn your face to the left"
-            case .aligned:
-                return "Hold still — capturing..."
-            }
-        }
-        return viewModel.stepSubtitle
     }
 
     // MARK: - Step Counter Section
 
     private var stepCounterSection: some View {
         Text(viewModel.stepCounterText)
-            .font(.system(size: 14, weight: .medium))
-            .foregroundColor(Color(uiColor: .secondaryLabel))
+            .font(.system(size: 15, weight: .medium))
+            .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.58))
             .opacity(isStepCompleted ? 0 : 1)
             .animation(.easeInOut(duration: 0.2), value: isStepCompleted)
     }
