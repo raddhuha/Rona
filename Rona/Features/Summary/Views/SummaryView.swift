@@ -12,12 +12,16 @@ import Combine
 @MainActor
 public struct SummaryView: View {
     @EnvironmentObject private var router: AppRouter
-    @EnvironmentObject private var container: AppContainer
     @StateObject private var viewModel: SummaryViewModel
     @State private var isSettingsPresented: Bool = false
 
-    public init(viewModel: SummaryViewModel) {
-        _viewModel = StateObject(wrappedValue: viewModel)
+    public init(viewModel: SummaryViewModel? = nil) {
+        let vm = viewModel ?? SummaryViewModel(
+            scanRepository: AppContainer.preview.scanRepository,
+            insightGenerator: AppContainer.preview.insightGenerator,
+            imageStorage: AppContainer.preview.imageStorage
+        )
+        _viewModel = StateObject(wrappedValue: vm)
     }
 
     public var body: some View {
@@ -520,4 +524,33 @@ public struct SummaryProgressCard: View {
                 .stroke(Color(uiColor: .systemGray4).opacity(0.5), lineWidth: 1)
         )
     }
+}
+
+#Preview {
+    SummaryView()
+        .environmentObject(AppRouter())
+}
+
+#Preview {
+    WhatWeNoticedCardView(
+        observations: [
+            SkinObservationItem(
+                trend: .improvement,
+                title: "Good progress on your right cheek",
+                subtitle: "It's looking clearer than last week - acne decrease from 6 to 3"
+            ),
+            SkinObservationItem(
+                trend: .attention,
+                title: "Your chin might need some care",
+                subtitle: "A few more breakouts showed up — from 2 to 5. Worth keeping an eye on."
+            )
+        ],
+        showDetailsAction: {}
+    )
+    .padding()
+}
+
+#Preview {
+    SummaryProgressCard()
+        .padding()
 }

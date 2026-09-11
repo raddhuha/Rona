@@ -53,4 +53,13 @@ public final class ComparisonViewModel: ObservableObject {
         previousFrontImage = imageStorage.loadImage(fromPath: previousRecord.frontImagePath)
         currentFrontImage = imageStorage.loadImage(fromPath: currentRecord.frontImagePath)
     }
+
+    public static var previewInstance: ComparisonViewModel {
+        ComparisonViewModel(
+            previousRecord: ScanRecord(calendarDayId: "2026-08-12", skinScore: 68),
+            currentRecord: ScanRecord(calendarDayId: "2026-08-13", skinScore: 80),
+            imageStorage: AppContainer.preview.imageStorage,
+            insightGenerator: AppContainer.preview.insightGenerator
+        )
+    }
 }

@@ -118,3 +118,13 @@ private struct BarColumn: View {
         .frame(width: 22)
     }
 }
+
+#Preview {
+    AcneByTypeGroupedChart(
+        previousCounts: [.type1: 10, .type2: 7, .type3: 3],
+        currentCounts: [.type1: 7, .type2: 7, .type3: 5],
+        previousDateLabel: "12 Aug",
+        currentDateLabel: "13 Aug"
+    )
+    .padding()
+}

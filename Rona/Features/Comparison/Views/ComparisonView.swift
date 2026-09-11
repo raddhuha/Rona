@@ -16,8 +16,9 @@ public struct ComparisonView: View {
     @StateObject private var viewModel: ComparisonViewModel
     @State private var showScoreInfoSheet: Bool = false
 
-    public init(viewModel: ComparisonViewModel) {
-        _viewModel = StateObject(wrappedValue: viewModel)
+    public init(viewModel: ComparisonViewModel? = nil) {
+        let vm = viewModel ?? ComparisonViewModel.previewInstance
+        _viewModel = StateObject(wrappedValue: vm)
     }
 
     public var body: some View {
@@ -160,3 +161,9 @@ public struct ComparisonView: View {
         }
     }
 }
+
+#Preview {
+    ComparisonView()
+        .environmentObject(AppRouter())
+}
+

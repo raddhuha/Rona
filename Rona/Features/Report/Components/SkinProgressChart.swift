@@ -29,7 +29,7 @@ public struct SkinProgressChart: View {
     private let points: [ProgressPoint]
     private let mode: Mode
 
-    public init(points: [ProgressPoint], mode: Mode = .skinScore) {
+    public init(points: [ProgressPoint] = [], mode: Mode = .skinScore) {
         self.points = points
         self.mode = mode
     }
@@ -121,4 +121,8 @@ public struct SkinProgressChart: View {
             }
         }
     }
+}
+
+#Preview {
+    SkinProgressChart()
 }

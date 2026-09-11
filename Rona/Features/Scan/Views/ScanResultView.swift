@@ -20,10 +20,9 @@ public struct ScanResultView: View {
     @State private var isSaving: Bool = false
     @State private var showDiscardAlert: Bool = false
     @State private var showScoreInfoSheet: Bool = false
-    @State private var selectedAngleIndex: Int = 0
 
-    public init(viewModel: ScanViewModel, onSaveCompleted: @escaping () -> Void = {}) {
-        self.viewModel = viewModel
+    public init(viewModel: ScanViewModel? = nil, onSaveCompleted: @escaping () -> Void = {}) {
+        self.viewModel = viewModel ?? ScanViewModel.previewInstance
         self.onSaveCompleted = onSaveCompleted
     }
 
@@ -121,31 +120,19 @@ public struct ScanResultView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 14) {
                 // Card 1: Front
-                carouselCard(
-                    image: viewModel.frontImage,
-                    viewAngle: .front,
-                    label: "Front"
-                )
+                carouselCard(image: viewModel.frontImage)
 
                 // Card 2: Right
-                carouselCard(
-                    image: viewModel.rightImage,
-                    viewAngle: .right,
-                    label: "Right"
-                )
+                carouselCard(image: viewModel.rightImage)
 
                 // Card 3: Left
-                carouselCard(
-                    image: viewModel.leftImage,
-                    viewAngle: .left,
-                    label: "Left"
-                )
+                carouselCard(image: viewModel.leftImage)
             }
             .padding(.horizontal, 20)
         }
     }
 
-    private func carouselCard(image: UIImage?, viewAngle: ScanViewAngle, label: String) -> some View {
+    private func carouselCard(image: UIImage?) -> some View {
         ZStack {
             if let image = image {
                 Image(uiImage: image)
@@ -321,3 +308,9 @@ public struct ScanResultView: View {
         .presentationDetents([.medium])
     }
 }
+
+#Preview {
+    ScanResultView()
+        .environmentObject(AppRouter())
+}
+

@@ -15,8 +15,12 @@ public struct ReportView: View {
     @EnvironmentObject private var router: AppRouter
     @StateObject private var viewModel: ReportViewModel
 
-    public init(viewModel: ReportViewModel) {
-        _viewModel = StateObject(wrappedValue: viewModel)
+    public init(viewModel: ReportViewModel? = nil) {
+        let vm = viewModel ?? ReportViewModel(
+            scanRepository: AppContainer.preview.scanRepository,
+            insightGenerator: AppContainer.preview.insightGenerator
+        )
+        _viewModel = StateObject(wrappedValue: vm)
     }
 
     public var body: some View {
@@ -192,4 +196,9 @@ public struct ReportView: View {
             await viewModel.loadData()
         }
     }
+}
+
+#Preview {
+    ReportView()
+        .environmentObject(AppRouter())
 }

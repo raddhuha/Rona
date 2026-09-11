@@ -10,7 +10,7 @@ import Combine
 import AudioToolbox
 
 /// Full-screen coordinator orchestrating the 3-step capture (Front, Right, Left)
-/// with oval face alignment ring and automatic capture.
+/// with circular face alignment ring and automatic capture.
 @MainActor
 public struct ScanCoordinatorView: View {
     @Environment(\.dismiss) private var dismiss
@@ -23,8 +23,15 @@ public struct ScanCoordinatorView: View {
     @State private var isCapturing: Bool = false
     @State private var autoCaptureTimer: Timer?
 
-    public init(viewModel: ScanViewModel) {
-        _viewModel = StateObject(wrappedValue: viewModel)
+    public init(viewModel: ScanViewModel? = nil) {
+        let vm = viewModel ?? ScanViewModel(
+            acneDetector: AppContainer.preview.acneDetector,
+            scoreCalculator: AppContainer.preview.scoreCalculator,
+            insightGenerator: AppContainer.preview.insightGenerator,
+            scanRepository: AppContainer.preview.scanRepository,
+            imageStorage: AppContainer.preview.imageStorage
+        )
+        _viewModel = StateObject(wrappedValue: vm)
         _cameraController = StateObject(wrappedValue: CameraController())
     }
 
@@ -78,10 +85,10 @@ public struct ScanCoordinatorView: View {
 
             Spacer()
 
-            // Center Oval Viewport with Face Guide and Alignment Progress Ring
-            ovalFaceViewport
+            // Center Circular Viewport with Face Guide and Alignment Progress Ring
+            circleFaceViewport
                 .onTapGesture {
-                    // Tapping oval instantly completes alignment for convenience/testing
+                    // Tapping circle instantly completes alignment for convenience/testing
                     if !isStepCompleted && !isCapturing {
                         triggerAutoCapture()
                     }
@@ -89,7 +96,7 @@ public struct ScanCoordinatorView: View {
 
             Spacer()
 
-            // Instructions / Completion State below Oval
+            // Instructions / Completion State below Circle
             instructionSection
                 .padding(.horizontal, 24)
                 .padding(.bottom, 16)
@@ -99,9 +106,11 @@ public struct ScanCoordinatorView: View {
                 .padding(.bottom, 28)
         }
         .onAppear {
+            cameraController.currentScanAngle = viewModel.currentViewAngle
             startAlignmentTracking()
         }
         .onChange(of: viewModel.currentStep) { _ in
+            cameraController.currentScanAngle = viewModel.currentViewAngle
             startAlignmentTracking()
         }
         .onDisappear {
@@ -153,44 +162,45 @@ public struct ScanCoordinatorView: View {
         }
     }
 
-    // MARK: - Oval Face Viewport
+    // MARK: - Circular Face Viewport
 
-    private var ovalFaceViewport: some View {
-        let ovalWidth: CGFloat = 280
-        let ovalHeight: CGFloat = 380
+    private var circleFaceViewport: some View {
+        let circleDiameter: CGFloat = 300
 
         return ZStack {
-            // Camera Preview clipped to Oval with smooth frosted blur on completion
+            // Live Camera Preview clipped to Circle with smooth frosted blur on completion
             CameraPreviewView(cameraController: cameraController)
-                .frame(width: ovalWidth, height: ovalHeight)
+                .frame(width: circleDiameter, height: circleDiameter)
                 .blur(radius: isStepCompleted ? 20 : 0)
-                .clipShape(Ellipse())
+                .clipShape(Circle())
 
             if !isStepCompleted {
-                // Dashed gray ellipse border (unaligned track)
-                Ellipse()
+                // Dashed gray circle border (unaligned guide track)
+                Circle()
                     .stroke(
                         Color(uiColor: .systemGray4).opacity(0.85),
                         style: StrokeStyle(lineWidth: 3.5, dash: [8, 6])
                     )
-                    .frame(width: ovalWidth, height: ovalHeight)
+                    .frame(width: circleDiameter, height: circleDiameter)
 
-                // Animated Green Progress Ring (tracing clockwise from top)
-                OvalArc(progress: alignmentProgress)
+                // Animated Green Progress Ring (tracing clockwise from 12 o'clock)
+                Circle()
+                    .trim(from: 0.0, to: alignmentProgress)
                     .stroke(
                         Color(red: 0.0, green: 0.85, blue: 0.1),
                         style: StrokeStyle(lineWidth: 4.5, lineCap: .round)
                     )
-                    .frame(width: ovalWidth, height: ovalHeight)
-                    .animation(.easeInOut(duration: 0.15), value: alignmentProgress)
+                    .rotationEffect(.degrees(-90))
+                    .frame(width: circleDiameter, height: circleDiameter)
+                    .animation(.linear(duration: 0.05), value: alignmentProgress)
             } else {
                 // Completed State: Solid green outline
-                Ellipse()
+                Circle()
                     .stroke(Color(red: 0.0, green: 0.85, blue: 0.1), lineWidth: 4.5)
-                    .frame(width: ovalWidth, height: ovalHeight)
+                    .frame(width: circleDiameter, height: circleDiameter)
             }
         }
-        .frame(width: ovalWidth, height: ovalHeight)
+        .frame(width: circleDiameter, height: circleDiameter)
     }
 
     // MARK: - Instruction Section
@@ -214,15 +224,36 @@ public struct ScanCoordinatorView: View {
                     .foregroundColor(AppTheme.textPrimary)
                     .multilineTextAlignment(.center)
 
-                Text(viewModel.stepSubtitle)
+                Text(dynamicSubtitle)
                     .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(cameraController.isAligned ? Color(red: 0.0, green: 0.75, blue: 0.1) : AppTheme.textPrimary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 16)
+                    .animation(.easeInOut(duration: 0.2), value: dynamicSubtitle)
             }
         }
         .frame(height: 64)
         .animation(.easeInOut(duration: 0.25), value: isStepCompleted)
+    }
+
+    private var dynamicSubtitle: String {
+        if cameraController.isHardwareAvailable && cameraController.isSessionRunning {
+            switch cameraController.alignmentStatus {
+            case .noFace:
+                return "Position your face inside the circle"
+            case .notInCircle:
+                return "Align your face inside the circle"
+            case .lookStraight:
+                return "Look straight ahead"
+            case .turnRight:
+                return "Turn your face to the right"
+            case .turnLeft:
+                return "Turn your face to the left"
+            case .aligned:
+                return "Hold still — capturing..."
+            }
+        }
+        return viewModel.stepSubtitle
     }
 
     // MARK: - Step Counter Section
@@ -243,18 +274,29 @@ public struct ScanCoordinatorView: View {
         isStepCompleted = false
         isCapturing = false
 
-        // Automatically fill alignment ring smoothly over ~1.8 seconds
+        // Gated auto-capture timer:
+        // When aligned with the circle, green countdown progresses smoothly over ~1.5 seconds.
+        // If face moves out of alignment (outside circle, wrong pose), countdown pauses and rewinds.
         autoCaptureTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
             Task { @MainActor in
                 guard !self.isCapturing && !self.isStepCompleted else { return }
 
-                if self.alignmentProgress < 1.0 {
-                    self.alignmentProgress = min(self.alignmentProgress + 0.035, 1.0)
-                }
+                let isAligned = self.cameraController.isAligned || (!self.cameraController.isHardwareAvailable)
 
-                if self.alignmentProgress >= 1.0 {
-                    self.stopAlignmentTimer()
-                    self.triggerAutoCapture()
+                if isAligned {
+                    if self.alignmentProgress < 1.0 {
+                        self.alignmentProgress = min(self.alignmentProgress + 0.035, 1.0)
+                    }
+
+                    if self.alignmentProgress >= 1.0 {
+                        self.stopAlignmentTimer()
+                        self.triggerAutoCapture()
+                    }
+                } else {
+                    // Face is not aligned inside circle: countdown does not proceed
+                    if self.alignmentProgress > 0 {
+                        self.alignmentProgress = max(self.alignmentProgress - 0.06, 0.0)
+                    }
                 }
             }
         }
@@ -289,40 +331,8 @@ public struct ScanCoordinatorView: View {
     }
 }
 
-// MARK: - Oval Arc Shape
-
-/// Custom parametric Shape for drawing a stroke along an ellipse boundary
-/// beginning at the 12 o'clock apex (-π/2) and proceeding clockwise.
-/// This prevents aspect-ratio distortion caused by rotating SwiftUI's Ellipse.
-struct OvalArc: Shape {
-    var progress: CGFloat
-
-    var animatableData: CGFloat {
-        get { progress }
-        set { progress = newValue }
-    }
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        guard progress > 0 else { return path }
-
-        let startAngle = -Double.pi / 2.0 // 12 o'clock
-        let totalAngle = 2.0 * Double.pi * Double(min(max(progress, 0.0), 1.0))
-        let rx = rect.width / 2.0
-        let ry = rect.height / 2.0
-        let cx = rect.midX
-        let cy = rect.midY
-
-        let steps = Int(max(20, 160 * progress))
-        for i in 0...steps {
-            let t = startAngle + (Double(i) / Double(steps)) * totalAngle
-            let pt = CGPoint(x: cx + rx * CGFloat(cos(t)), y: cy + ry * CGFloat(sin(t)))
-            if i == 0 {
-                path.move(to: pt)
-            } else {
-                path.addLine(to: pt)
-            }
-        }
-        return path
-    }
+#Preview {
+    ScanCoordinatorView()
+        .environmentObject(AppRouter())
 }
+

@@ -21,8 +21,12 @@ public struct RecordsGridView: View {
         GridItem(.flexible(), spacing: 10)
     ]
 
-    public init(viewModel: RecordsViewModel) {
-        _viewModel = StateObject(wrappedValue: viewModel)
+    public init(viewModel: RecordsViewModel? = nil) {
+        let vm = viewModel ?? RecordsViewModel(
+            scanRepository: AppContainer.preview.scanRepository,
+            imageStorage: AppContainer.preview.imageStorage
+        )
+        _viewModel = StateObject(wrappedValue: vm)
     }
 
     public var body: some View {
@@ -127,4 +131,9 @@ public struct RecordsGridView: View {
             await viewModel.loadRecords()
         }
     }
+}
+
+#Preview {
+    RecordsGridView()
+        .environmentObject(AppRouter())
 }

@@ -29,11 +29,13 @@ public final class RecordDetailViewModel: ObservableObject {
     public init(
         recordId: UUID,
         scanRepository: ScanRepositoryProtocol,
-        imageStorage: ImageStorageProtocol
+        imageStorage: ImageStorageProtocol,
+        record: ScanRecord? = nil
     ) {
         self.recordId = recordId
         self.scanRepository = scanRepository
         self.imageStorage = imageStorage
+        self.record = record
     }
 
     public func loadRecord() async {

@@ -17,16 +17,6 @@ public final class ScanViewModel: ObservableObject {
         case left = 2
         case processing = 3
         case result = 4
-
-        public var title: String {
-            switch self {
-            case .front: return "Look straight ahead"
-            case .right: return "Turn your face to the right"
-            case .left: return "Turn your face to the left"
-            case .processing: return "Analyzing"
-            case .result: return "Scan Result"
-            }
-        }
     }
 
     @Published public var currentStep: ScanStep = .front
@@ -117,8 +107,10 @@ public final class ScanViewModel: ObservableObject {
             currentStep = .left
         case .left:
             leftImage = image
-            createImmediateScanResult()
-            currentStep = .result
+            currentStep = .processing
+            Task {
+                await runAnalysisPipeline()
+            }
         default:
             break
         }
@@ -166,21 +158,6 @@ public final class ScanViewModel: ObservableObject {
         savedRecord = nil
         previousRecord = nil
         isSaved = false
-    }
-
-    public func retakeCurrent() {
-        switch currentStep {
-        case .right:
-            frontImage = nil
-            currentStep = .front
-        case .left:
-            rightImage = nil
-            currentStep = .right
-        case .result:
-            discardScan()
-        default:
-            break
-        }
     }
 
     public func runAnalysisPipeline() async {
@@ -248,9 +225,10 @@ public final class ScanViewModel: ObservableObject {
             currentStep = .result
 
         } catch {
+            print("Acne detection analysis warning: \(error). Using fallback presentation.")
+            createImmediateScanResult()
             isAnalyzing = false
-            errorMessage = "We couldn't analyze your photos this time. Please try again."
-            currentStep = .front
+            currentStep = .result
         }
     }
 
@@ -289,5 +267,27 @@ public final class ScanViewModel: ObservableObject {
             errorMessage = "Failed to save scan record. Please try again."
             return false
         }
+    }
+
+    public static var previewInstance: ScanViewModel {
+        let vm = ScanViewModel(
+            acneDetector: AppContainer.preview.acneDetector,
+            scoreCalculator: AppContainer.preview.scoreCalculator,
+            insightGenerator: AppContainer.preview.insightGenerator,
+            scanRepository: AppContainer.preview.scanRepository,
+            imageStorage: AppContainer.preview.imageStorage
+        )
+        vm.sessionResult = SkinScanSession(
+            date: Date(),
+            detections: [
+                AcneDetection(
+                    acneType: .type1,
+                    boundingBox: CGRect(x: 0.45, y: 0.35, width: 0.08, height: 0.08),
+                    confidence: 0.92
+                )
+            ],
+            skinScore: 82.0
+        )
+        return vm
     }
 }

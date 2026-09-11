@@ -16,8 +16,28 @@ public struct RecordDetailView: View {
     @StateObject private var viewModel: RecordDetailViewModel
     @State private var showScoreInfoSheet: Bool = false
 
-    public init(viewModel: RecordDetailViewModel) {
-        _viewModel = StateObject(wrappedValue: viewModel)
+    public init(viewModel: RecordDetailViewModel? = nil) {
+        let vm = viewModel ?? RecordDetailViewModel(
+            recordId: UUID(),
+            scanRepository: AppContainer.preview.scanRepository,
+            imageStorage: AppContainer.preview.imageStorage,
+            record: ScanRecord(
+                calendarDayId: "2026-08-13",
+                date: Date(),
+                skinScore: 80.0,
+                totalAcneCount: 1,
+                detections: [
+                    AcneDetectionRecord(
+                        from: AcneDetection(
+                            acneType: .type1,
+                            boundingBox: CGRect(x: 0.45, y: 0.35, width: 0.08, height: 0.08),
+                            confidence: 0.92
+                        )
+                    )
+                ]
+            )
+        )
+        _viewModel = StateObject(wrappedValue: vm)
     }
 
     public var body: some View {
@@ -269,3 +289,9 @@ public struct RecordDetailView: View {
         }
     }
 }
+
+#Preview {
+    RecordDetailView()
+        .environmentObject(AppRouter())
+}
+

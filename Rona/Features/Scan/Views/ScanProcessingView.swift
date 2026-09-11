@@ -68,3 +68,7 @@ public struct ScanProcessingView: View {
         .background(AppTheme.background)
     }
 }
+
+#Preview {
+    ScanProcessingView()
+}
